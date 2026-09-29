@@ -248,9 +248,10 @@ export const useStore = create<Store>((set, get) => ({
     return true;
   },
 
+  // Disconnecting and deleting leave the other nodes where they are.
   disconnect(childId) {
     const s = get();
-    s.commit(ops.setParent(s.doc, childId, undefined), { relayout: true });
+    s.commit(ops.setParent(s.doc, childId, undefined));
   },
 
   setOption(id, name, value) {
@@ -270,7 +271,7 @@ export const useStore = create<Store>((set, get) => ({
   removeNode(id) {
     const s = get();
     const owner = s.doc.nodes[id]?.owner?.id;
-    s.commit(ops.removeNode(s.doc, id), { select: owner ?? null, relayout: true });
+    s.commit(ops.removeNode(s.doc, id), { select: owner ?? null });
   },
 
   changeType(id, type) {
