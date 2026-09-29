@@ -7,7 +7,8 @@ Run with the Python that has forte2 installed:
 The output lists every public dataclass reachable from ``forte2`` plus the
 parameter classes, with each init field's type, default and description.
 Descriptions are merged along the MRO, so options documented on a base class
-(for example ``SCFBase``) are attached to every subclass.
+(for example ``SCFBase``) are attached to every subclass. It also lists the
+parameters of the post-processing functions in ``FUNCTIONS``.
 """
 
 import contextlib
@@ -32,6 +33,12 @@ EXTRA_CLASSES = [
     "forte2.dsrg:RelDSRG_MRPT2",
 ]
 
+FUNCTIONS = [
+    "forte2:get_1e_property",
+    "forte2:mulliken_population",
+    "forte2:write_orbital_cubes",
+]
+
 
 def _load(spec):
     module_name, _, attr = spec.partition(":")
@@ -40,20 +47,27 @@ def _load(spec):
     return getattr(module, attr)
 
 
-def _param_docs(cls):
+def _docstring_params(doc):
     from numpydoc.docscrape import NumpyDocString
 
+    try:
+        params = NumpyDocString(inspect.cleandoc(doc))["Parameters"]
+    except Exception:
+        return {}
+    return {
+        p.name.split(":")[0].strip(): {
+            "type": p.type,
+            "desc": "\n".join(p.desc).strip(),
+        }
+        for p in params
+    }
+
+
+def _param_docs(cls):
     docs = {}
     for klass in reversed(cls.__mro__):
-        if not klass.__doc__:
-            continue
-        try:
-            params = NumpyDocString(inspect.cleandoc(klass.__doc__))["Parameters"]
-        except Exception:
-            continue
-        for p in params:
-            name = p.name.split(":")[0].strip()
-            docs[name] = {"type": p.type, "desc": "\n".join(p.desc).strip()}
+        if klass.__doc__:
+            docs.update(_docstring_params(klass.__doc__))
     return docs
 
 
@@ -79,6 +93,10 @@ def _default(field):
             return {"repr": "<factory>"}
     else:
         return None
+    return _encode(value)
+
+
+def _encode(value):
     if isinstance(value, enum.Enum):
         value = value.value
     try:
@@ -121,6 +139,29 @@ def dump_class(cls):
     }
 
 
+def dump_function(fn):
+    docs = _docstring_params(fn.__doc__ or "")
+    options = []
+    for p in inspect.signature(fn).parameters.values():
+        if p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
+            continue
+        annotated = p.annotation is not inspect.Parameter.empty
+        entry = {
+            "name": p.name,
+            "type": (
+                _type_str(p.annotation)
+                if annotated
+                else docs.get(p.name, {}).get("type", "")
+            ),
+            "required": p.default is inspect.Parameter.empty,
+            "doc": docs.get(p.name, {}).get("desc"),
+        }
+        if p.default is not inspect.Parameter.empty:
+            entry["default"] = _encode(p.default)
+        options.append(entry)
+    return {"module": fn.__module__, "summary": _summary(fn), "options": options}
+
+
 def main():
     classes = {}
     for name in dir(forte2):
@@ -133,6 +174,10 @@ def main():
     out = {
         "forte2_version": forte2.__version__,
         "classes": {name: dump_class(cls) for name, cls in sorted(classes.items())},
+        "functions": {
+            fn.__name__: dump_function(fn)
+            for fn in sorted(map(_load, FUNCTIONS), key=lambda f: f.__name__)
+        },
     }
     json.dump(out, sys.stdout, indent=2)
     sys.stdout.write("\n")

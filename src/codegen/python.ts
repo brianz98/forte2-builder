@@ -112,7 +112,8 @@ export function generatePython(
   for (const id of chainOrder(doc)) {
     const node = doc.nodes[id];
     const def = defOf(node);
-    const chainKind = def && (def.kind === "system" || def.kind === "method" || def.kind === "driver");
+    const chainKind =
+      def && ["system", "method", "driver", "analysis"].includes(def.kind);
     const reachable =
       chainKind && (def.kind === "system" || (node.parent !== undefined && ok.has(node.parent)));
     if (reachable) {
@@ -126,9 +127,10 @@ export function generatePython(
   const used = new Set<string>();
   const imports = new Map<string, Set<string>>();
   const importName = (def: NodeDef) => {
+    const name = def.call ?? def.name;
     if (!imports.has(def.import)) imports.set(def.import, new Set());
-    imports.get(def.import)!.add(def.name);
-    used.add(def.name);
+    imports.get(def.import)!.add(name);
+    used.add(name);
   };
   const vars = new Map<string, string>();
   const claim = (base: string) => {
@@ -158,10 +160,27 @@ export function generatePython(
 
   const body: string[] = [];
   const hoisted: string[] = [];
+  const analyses: string[] = [];
+
+  // Fill "{parent}" and "{parent.<fact>}" in an analysis node's bound argument.
+  const boundExpr = (template: string, parent: GraphNode): string => {
+    const parentVar = vars.get(parent.id)!;
+    const exprs = defOf(parent)?.exprs ?? {};
+    return template
+      .replace(/\{parent\.(\w+)\}/g, (_, fact: string) =>
+        (exprs[fact] ?? "None").replace(/\{self\}/g, parentVar),
+      )
+      .replace(/\{parent\}/g, parentVar);
+  };
 
   const exprFor = (node: GraphNode, pre: string[]): Expr => {
     const def = defOf(node)!;
     const args: Arg[] = [];
+    if (def.bind && node.parent) {
+      for (const template of Object.values(def.bind)) {
+        args.push({ value: { kind: "raw", text: boundExpr(template, doc.nodes[node.parent]) } });
+      }
+    }
     const slotExpr = (slot: string): Expr | undefined => {
       const ids = node.slots[slot] ?? [];
       const items = ids.map((cid) => {
@@ -209,7 +228,7 @@ export function generatePython(
       const e = slotExpr(slot);
       if (e) args.push({ name: slot, value: e });
     }
-    return { kind: "call", callee: def.name, args };
+    return { kind: "call", callee: def.call ?? def.name, args };
   };
 
   const assign = (name: string, e: Expr, call?: string) => {
@@ -221,11 +240,20 @@ export function generatePython(
   emitted.forEach((id) => varFor(doc.nodes[id]));
   for (const id of emitted) {
     const node = doc.nodes[id];
+    const def = defOf(node)!;
     const pre: string[] = [];
     const e = exprFor(node, pre);
+    if (def.kind === "analysis") {
+      if (def.result) {
+        const name = vars.get(id)!;
+        analyses.push(assign(name, e), `print(${name})`);
+      } else {
+        analyses.push(render(e, 0, 0));
+      }
+      continue;
+    }
     const parentVar = node.parent ? vars.get(node.parent) : undefined;
     const stmt = assign(vars.get(id)!, e, parentVar);
-    const def = defOf(node)!;
     if (def.kind === "system") {
       body.push(...hoisted.splice(0), ...pre, stmt, "");
     } else {
@@ -233,10 +261,12 @@ export function generatePython(
     }
   }
 
-  const hasChild = new Set(emitted.map((id) => doc.nodes[id].parent).filter(Boolean));
-  const leaves = emitted.filter(
-    (id) => !hasChild.has(id) && defOf(doc.nodes[id])!.kind !== "system",
+  // Run each method that no other method follows; analysis calls come after.
+  const runs = (id: string) => ["method", "driver"].includes(defOf(doc.nodes[id])!.kind);
+  const hasChild = new Set(
+    emitted.filter(runs).map((id) => doc.nodes[id].parent).filter(Boolean),
   );
+  const leaves = emitted.filter((id) => runs(id) && !hasChild.has(id));
 
   const out: string[] = [];
   if (options.header) out.push(...options.header.split("\n").map((l) => `# ${l}`.trimEnd()));
@@ -244,6 +274,7 @@ export function generatePython(
   while (body.length && body[body.length - 1] === "") body.pop();
   out.push(...body);
   if (leaves.length) out.push("", ...leaves.map((id) => `${vars.get(id)}.run()`));
+  if (analyses.length) out.push("", ...analyses);
   if (skipped.length) {
     out.push(
       "",

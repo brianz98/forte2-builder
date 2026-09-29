@@ -18,7 +18,7 @@ export interface DumpOption {
 
 export interface DumpClass {
   module: string;
-  mro: string[];
+  mro?: string[];
   summary: string;
   options: DumpOption[];
 }
@@ -26,6 +26,7 @@ export interface DumpClass {
 export interface Dump {
   forte2_version: string;
   classes: Record<string, DumpClass>;
+  functions?: Record<string, DumpClass>;
 }
 
 type RawOption = Partial<OptionDef>;
@@ -48,6 +49,10 @@ interface RawNode {
   sets?: Record<string, Scalar>;
   requires_attrs?: Record<string, Scalar>;
   inherit_requirements_from?: string;
+  exprs?: Record<string, string>;
+  call?: string;
+  bind?: Record<string, string>;
+  result?: string;
   slots?: Record<string, SlotDef>;
   options?: Record<string, RawOption>;
   hide?: string[];
@@ -117,6 +122,7 @@ function mergeRaw(base: RawNode, own: RawNode): RawNode {
     hide: [...(base.hide ?? []), ...(own.hide ?? [])],
     sets: { ...(base.sets ?? {}), ...(own.sets ?? {}) },
     requires_attrs: { ...(base.requires_attrs ?? {}), ...(own.requires_attrs ?? {}) },
+    exprs: { ...(base.exprs ?? {}), ...(own.exprs ?? {}) },
   };
 }
 
@@ -145,10 +151,15 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
   for (const name of Object.keys(raw.nodes)) {
     const r = resolveExtends(name, raw.nodes);
     if (r.abstract) continue;
-    const dumpName = r.dump ?? name;
-    const dc = dump?.classes[dumpName];
-    if (dump && !dc) problems.push(`${name}: class ${dumpName} is not in the forte2 dump`);
+    const dumpName = r.dump ?? r.call ?? name;
+    const dc = r.call ? dump?.functions?.[dumpName] : dump?.classes[dumpName];
+    if (dump && !dc) problems.push(`${name}: ${dumpName} is not in the forte2 dump`);
     const dumpOpts = new Map((dc?.options ?? []).map((o) => [o.name, o]));
+    for (const param of Object.keys(r.bind ?? {})) {
+      if (dump && dc && !dumpOpts.has(param)) {
+        problems.push(`${name}: bind names ${param}, which isn't a parameter`);
+      }
+    }
     const slots: Record<string, SlotDef> = {};
     for (const [sname, s] of Object.entries(r.slots ?? {})) {
       const d = dumpOpts.get(sname);
@@ -164,7 +175,7 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
     }
     const hide = new Set(r.hide ?? []);
     for (const d of dc?.options ?? []) {
-      if (d.name in options || d.name in slots) continue;
+      if (d.name in options || d.name in slots || d.name in (r.bind ?? {})) continue;
       options[d.name] = {
         ...fillOption({}, d),
         advanced: true,
@@ -192,6 +203,10 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
       sets: r.sets ?? {},
       requires_attrs: r.requires_attrs ?? {},
       inherit_requirements_from: r.inherit_requirements_from,
+      exprs: r.exprs ?? {},
+      call: r.call,
+      bind: r.bind,
+      result: r.result,
       slots,
       options,
       card: r.card,
@@ -244,6 +259,14 @@ function checkReferences(c: Catalog): string[] {
     for (const [sname, s] of Object.entries(n.slots)) {
       for (const a of s.accepts) {
         if (!c.nodes[a]) out.push(`${n.name}.${sname}: unknown type ${a}`);
+      }
+    }
+    if (n.kind === "analysis" && !n.call) out.push(`${n.name}: an analysis node needs call`);
+    for (const expr of Object.values(n.bind ?? {})) {
+      for (const [, fact] of expr.matchAll(/\{parent\.(\w+)\}/g)) {
+        if (!(n.requires ?? []).includes(fact)) {
+          out.push(`${n.name}: bind uses {parent.${fact}}, so requires must list ${fact}`);
+        }
       }
     }
     if (n.inherit_requirements_from && !n.slots[n.inherit_requirements_from]) {

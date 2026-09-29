@@ -42,10 +42,11 @@ def main():
     dump = load(sys.argv[2])
     old_dump_path = sys.argv[1].rsplit(".", 1)[0] + ".dump.json"
     try:
-        old_dump = load(old_dump_path)["classes"]
+        old = load(old_dump_path)
+        old_dump = {**old["classes"], **old.get("functions", {})}
     except FileNotFoundError:
         old_dump = {}
-    new = dump["classes"]
+    new = {**dump["classes"], **dump.get("functions", {})}
     nodes = catalog["nodes"]
     lines = []
 
@@ -53,7 +54,8 @@ def main():
     for name, node in nodes.items():
         if node.get("abstract"):
             continue
-        curated[node.get("dump", name)] = resolve(nodes, name)
+        resolved = resolve(nodes, name)
+        curated[resolved.get("dump", resolved.get("call", name))] = resolved
 
     for cls in sorted(set(curated) - set(new)):
         lines.append(f"REMOVED CLASS  {cls} is curated but no longer in forte2")
@@ -65,7 +67,11 @@ def main():
             continue
         fields = {o["name"]: o for o in new[cls]["options"]}
         old_fields = {o["name"]: o for o in old_dump.get(cls, {}).get("options", [])}
-        listed = set(node.get("options", {})) | set(node.get("slots", {}))
+        listed = (
+            set(node.get("options", {}))
+            | set(node.get("slots", {}))
+            | set(node.get("bind", {}))
+        )
         for opt in sorted(listed - set(fields)):
             lines.append(
                 f"STALE OPTION   {cls}.{opt} is curated but no longer an argument"

@@ -48,8 +48,9 @@ export function suggestFixes(
   const attrsOf = (id?: string) => (id ? analysis.facts[id]?.attrs : undefined);
   const candidates: Candidate[] = [];
   const isMethod = (kind?: string) => kind === "method" || kind === "driver";
+  const isChained = (kind?: string) => isMethod(kind) || kind === "analysis";
 
-  if (!parent && isMethod(chainDef?.kind)) {
+  if (!parent && isChained(chainDef?.kind)) {
     const tops = Object.values(doc.nodes).filter((n) => !n.owner && n.id !== chain.id);
     for (const target of tops) {
       const facts = analysis.facts[target.id];
@@ -64,7 +65,7 @@ export function suggestFixes(
     }
   }
 
-  if (parent && isMethod(chainDef?.kind)) {
+  if (parent && isChained(chainDef?.kind)) {
     const pfacts = analysis.facts[parent.id];
     for (const def of Object.values(catalog.nodes)) {
       if (!isMethod(def.kind) || !pfacts) continue;

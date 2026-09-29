@@ -41,7 +41,7 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps) {
   const chainFacts = analysis.facts[node.owner ? "" : nodeId];
   const twoC = chainFacts?.attrs.two_component === true && def.kind !== "system";
   const horizontal = design.direction === "RIGHT";
-  const isChain = def.kind === "system" || def.kind === "method" || def.kind === "driver";
+  const isChain = ["system", "method", "driver", "analysis"].includes(def.kind);
   const style = { "--g": `var(--g-${group?.color ?? "gray"})` } as CSSProperties;
 
   const selectChild = (e: MouseEvent, id: string) => {

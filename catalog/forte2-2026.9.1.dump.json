@@ -2642,5 +2642,141 @@
         }
       ]
     }
+  },
+  "functions": {
+    "get_1e_property": {
+      "module": "forte2.props.props",
+      "summary": "Calculate a one-electron property using AO-basis quantities.",
+      "options": [
+        {
+          "name": "system",
+          "type": "System",
+          "required": true,
+          "doc": "The system for which the property is calculated."
+        },
+        {
+          "name": "g1",
+          "type": "NDArray",
+          "required": true,
+          "doc": "The 1-particle density matrix in the AO basis.\nShould be the spin-free density matrix (dm_aa + dm_bb) for the non-relativistic case."
+        },
+        {
+          "name": "property_name",
+          "type": "str",
+          "required": true,
+          "doc": "The name of the property to calculate (e.g., \"kinetic_energy\", \"nuclear_attraction_energy\", \"electric_dipole\")."
+        },
+        {
+          "name": "origin",
+          "type": "",
+          "required": false,
+          "doc": "The origin point for properties that depend on it (e.g., electric dipole moment).",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "unit",
+          "type": "",
+          "required": false,
+          "doc": "The unit for the property value, either \"debye\" or \"au\". Default is \"debye\".\nOnly used for multipole moments. For quadrupole moments, \"debye\" stands for debye * angstrom, etc.",
+          "default": {
+            "value": "debye"
+          }
+        }
+      ]
+    },
+    "mulliken_population": {
+      "module": "forte2.props.props",
+      "summary": "Perform Mulliken population analysis on the system using the given method.",
+      "options": [
+        {
+          "name": "system",
+          "type": "System",
+          "required": true,
+          "doc": "The system for which the Mulliken population is calculated."
+        },
+        {
+          "name": "g1",
+          "type": "NDArray",
+          "required": true,
+          "doc": "The 1-particle spin-free density matrix (dm_aa + dm_bb)."
+        }
+      ]
+    },
+    "write_orbital_cubes": {
+      "module": "forte2.orbitals.cube_generator",
+      "summary": "A convenience function to write cube files for molecular orbitals.",
+      "options": [
+        {
+          "name": "system",
+          "type": "forte2.system.System",
+          "required": true,
+          "doc": "The system object containing the molecular information."
+        },
+        {
+          "name": "C",
+          "type": "NDArray",
+          "required": true,
+          "doc": "The molecular orbital coefficients matrix."
+        },
+        {
+          "name": "indices",
+          "type": "List[int], optional, default=None",
+          "required": false,
+          "doc": "The indices (zero-based) of the orbitals to generate cube files for.\nBy default all orbitals are generated.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "prefix",
+          "type": "str, optional, default=\"orbital\"",
+          "required": false,
+          "doc": "The prefix for the cube file names.",
+          "default": {
+            "value": "orbital"
+          }
+        },
+        {
+          "name": "filepath",
+          "type": "str, optional, default=\".\"",
+          "required": false,
+          "doc": "The directory to save the cube files in.",
+          "default": {
+            "value": "."
+          }
+        },
+        {
+          "name": "format",
+          "type": "Tuple[str, ...] or str, optional, default=(\"cube\",)",
+          "required": false,
+          "doc": "Output formats to generate. Supported values:\n  - \"cube\": standard CUBE files. For two-component systems, writes\n    separate alpha and beta magnitude files (\"_a.cube\" and \"_b.cube\").\n  - \"2ccube\": two-component cube files (\".2ccube\"). For two-component\n    systems only, writes four datasets consecutively per orbital in the\n    order: alpha real, alpha imag, beta real, beta imag.\nMultiple formats can be requested at once, e.g., formats=(\"cube\",\"2ccube\").",
+          "default": {
+            "value": [
+              "cube"
+            ]
+          }
+        },
+        {
+          "name": "spacing",
+          "type": "float, optional, default=0.2",
+          "required": false,
+          "doc": "The spacing between grid points in the cube file (in bohr).",
+          "default": {
+            "value": 0.2
+          }
+        },
+        {
+          "name": "padding",
+          "type": "float, optional, default=4.0",
+          "required": false,
+          "doc": "The extra space (in bohr) added in all directions around the atoms when generating the grid.",
+          "default": {
+            "value": 4.0
+          }
+        }
+      ]
+    }
   }
 }

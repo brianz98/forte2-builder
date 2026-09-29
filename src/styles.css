@@ -38,6 +38,7 @@
   --g-orange: #ea580c;
   --g-green: #16a34a;
   --g-gray: #71717a;
+  --g-cyan: #0891b2;
 
   --tk-kw: #8250df;
   --tk-str: #0a7f5a;
@@ -84,6 +85,7 @@
     --g-orange: #fb923c;
     --g-green: #4ade80;
     --g-gray: #a1a1aa;
+    --g-cyan: #22d3ee;
     --tk-kw: #c4a7ff;
     --tk-str: #7ee0b0;
     --tk-num: #ffb86b;
@@ -127,6 +129,7 @@
   --g-orange: #fb923c;
   --g-green: #4ade80;
   --g-gray: #a1a1aa;
+  --g-cyan: #22d3ee;
   --tk-kw: #c4a7ff;
   --tk-str: #7ee0b0;
   --tk-num: #ffb86b;
@@ -682,6 +685,12 @@ button {
 
 .card.density-compact {
   width: 200px;
+}
+
+/* Analysis nodes are calls made after the chain runs, not stages of it. */
+.card.kind-analysis {
+  border-style: dashed;
+  box-shadow: var(--shadow-sm);
 }
 
 .card:hover {

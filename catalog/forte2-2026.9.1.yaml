@@ -7,7 +7,7 @@
 # not listed here still appear in the builder, under "Advanced", unless hidden.
 #
 # Node fields
-#   kind       system | method | driver | solver | value
+#   kind       system | method | driver | solver | value | analysis
 #   parents    chain nodes this one may follow (any, when omitted)
 #   requires   facts the parent must provide; provides: facts this node offers
 #   passes     facts forwarded from the parent when it has them
@@ -15,6 +15,12 @@
 #   requires_attrs  attributes the parent must have
 #   slots      constructor arguments that take another catalog object
 #   family     types that can replace each other in "Switch to" and fixes
+#   exprs      Python expressions offered downstream, keyed by fact ({self} is
+#              this node's variable)
+#   call, bind, result
+#              analysis nodes only: the function called after the chain runs,
+#              its arguments filled from the upstream method ({parent}, or
+#              {parent.<fact>} for one of its exprs), and the variable printed
 #   rules      extra checks; paths are self.<option>, parent.<type|provides|attr>,
 #              system.<type|option|slot.option>
 
@@ -29,6 +35,7 @@ groups:
   solvers: { label: Active-space solvers, color: fuchsia }
   correlation: { label: Dynamic correlation, color: orange }
   geometry: { label: Gradients and geometry, color: green }
+  analysis: { label: Analysis, color: cyan }
   params: { label: Parameters, color: gray }
 
 facts:
@@ -38,6 +45,7 @@ facts:
   mo_space: { label: an active space }
   energy: { label: an energy }
   gradient: { label: a nuclear gradient }
+  ao_density: { label: an AO density matrix }
 
 attrs:
   two_component:
@@ -109,7 +117,9 @@ nodes:
     family: scf
     import: forte2
     parents: [System, HubbardModel]
-    provides: [system, mos, eps, energy]
+    provides: [system, mos, eps, energy, ao_density]
+    # forte2's own tests use this helper; every SCF class defines it.
+    exprs: { ao_density: "{self}._build_total_density_matrix()" }
     card: [charge]
     options:
       charge: { example: 0 }
@@ -142,7 +152,7 @@ nodes:
     extends: _one_component_scf
     var: rhf
     summary: Restricted Hartree–Fock for closed-shell molecules.
-    provides: [system, mos, eps, energy, gradient]
+    provides: [system, mos, eps, energy, gradient, ao_density]
 
   ROHF:
     extends: _one_component_scf
@@ -156,7 +166,7 @@ nodes:
     extends: _one_component_scf
     var: uhf
     summary: Unrestricted Hartree–Fock.
-    provides: [system, mos, eps, energy, gradient]
+    provides: [system, mos, eps, energy, gradient, ao_density]
     card: [charge, ms]
     options:
       ms: { type: float }
@@ -175,7 +185,7 @@ nodes:
     extends: _scf
     var: ghf
     summary: Generalized (two-component) Hartree–Fock; required for spin-orbit X2C.
-    provides: [system, mos, eps, energy, gradient]
+    provides: [system, mos, eps, energy, gradient, ao_density]
     sets: { two_component: true }
     card: [charge]
     options:
@@ -479,6 +489,79 @@ nodes:
       max_step: {}
       project_orbitals: { advanced: true }
     hide: [method_factory, lbfgs_kwargs]
+
+  # --------------------------------------------------------------- analysis
+  write_orbital_cubes:
+    kind: analysis
+    group: analysis
+    import: forte2
+    call: write_orbital_cubes
+    var: cubes
+    summary: Write orbitals to cube files for viewing in a molecular visualizer.
+    requires: [mos]
+    requires_attrs: { model: false }
+    bind: { system: "{parent}.system", C: "{parent}.mos.C[0]" }
+    card: [indices, prefix]
+    options:
+      indices: { type: "list[int]", placeholder: "all orbitals" }
+      prefix: {}
+      filepath: {}
+      format:
+        type: enum
+        values: [cube, 2ccube]
+        default: cube
+        doc: >-
+          The file format. "cube" writes standard cube files; for two-component
+          orbitals it writes the alpha and beta magnitudes separately. "2ccube"
+          writes the real and imaginary parts of both spin components, for
+          two-component orbitals only.
+      spacing: { type: float }
+      padding: { type: float }
+    rules:
+      - require: { self.indices: { set: true } }
+        field: indices
+        severity: warning
+        message: Without indices, this writes a cube file for every orbital.
+      - when: { self.format: 2ccube }
+        require: { parent.two_component: true }
+        field: format
+        message: The "2ccube" format needs two-component orbitals.
+
+  get_1e_property:
+    kind: analysis
+    group: analysis
+    import: forte2
+    call: get_1e_property
+    var: prop
+    result: prop
+    summary: A one-electron property of the mean-field density, such as the dipole moment.
+    requires: [ao_density]
+    requires_attrs: { model: false }
+    bind: { system: "{parent}.system", g1: "{parent.ao_density}" }
+    card: [property_name, unit]
+    options:
+      property_name:
+        type: enum
+        values: [dipole, quadrupole, electric_dipole, electric_quadrupole, kinetic_energy, nuclear_attraction_energy]
+        example: dipole
+        doc: >-
+          The property. "dipole" and "quadrupole" include the nuclear
+          contribution; "electric_dipole" and "electric_quadrupole" are the
+          electronic part only.
+      origin: { type: "list[float]", placeholder: "0, 0, 0" }
+      unit: { type: enum, values: [debye, au] }
+
+  mulliken_population:
+    kind: analysis
+    group: analysis
+    import: forte2
+    call: mulliken_population
+    var: populations
+    result: populations
+    summary: Mulliken populations per basis function and partial charges per atom.
+    requires: [ao_density]
+    requires_attrs: { model: false, two_component: false }
+    bind: { system: "{parent}.system", g1: "{parent.ao_density}" }
 
   # ------------------------------------------------------------- parameters
   State:

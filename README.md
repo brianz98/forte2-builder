@@ -114,6 +114,12 @@ what can connect to what are the following:
 : Types that can replace each other, such as the SCF classes or the four solvers. The inspector's
   **Switch to** menu and the fix suggestions only swap a node for another type in its family.
 
+Post-processing functions, such as `get_1e_property`, are nodes of kind `analysis`. The generated
+script calls them after the chain runs. `bind` fills their leading arguments from the method they
+follow. For example, `g1: "{parent.ao_density}"` uses the expression that the method declares for
+the `ao_density` fact in its `exprs`. List the functions in `FUNCTIONS` in `tools/dump_forte2.py`
+so their parameters and descriptions come from forte2.
+
 When a check fails, the builder suggests fixes: connecting a loose node, inserting one node before
 the failing one, or switching the node or its upstream method to another type in its family. It
 tries each candidate on a copy of the graph and offers it only if the failed check passes and the
