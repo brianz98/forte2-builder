@@ -1,0 +1,39 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Mean field and properties
+order: 15
+title: Intrinsic atomic and bond orbitals of HCN
+summary: IAO partial charges from the RHF density, and intrinsic bond orbitals written to cube files. The script prints the IAO populations and the charge on each atom.
+tags: [IAO, IBO, partial charges, localized orbitals, cube files]
+source: tests/orbitals/test_iao.py
+results:
+  - { label: "C IAO charge", value: "−0.007845" }
+  - { label: "H IAO charge", value: "0.217556" }
+  - { label: "N IAO charge", value: "−0.209711" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        C 0 0 0
+        H 0 0 1.0640
+        N 0 0 -1.1560
+      basis_set: cc-pVTZ
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: iao
+    type: IAO
+    parent: rhf
+  - id: iao_charges
+    type: iao_partial_charge
+    parent: iao
+  - id: ibo
+    type: IBO
+    parent: rhf
+  - id: cubes
+    type: write_orbital_cubes
+    parent: ibo
+    options: { prefix: hcn_ibo }

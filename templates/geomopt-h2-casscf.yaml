@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Gradients and geometry
-order: 22
+order: 23
 title: CASSCF geometry optimization
 summary: Optimize the H₂ bond length with analytic CASSCF gradients. Insert FDGradient before the optimizer to use finite differences instead.
 tags: [geometry optimization, analytic gradients, CASSCF]

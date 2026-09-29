@@ -1,7 +1,7 @@
 import type { Catalog, Condition, NodeDef, OptionDef, Rule, Scalar } from "../catalog/types";
 import type { GraphDoc, GraphNode } from "../graph/types";
 import { chainNodeOf, chainOrder } from "../graph/ops";
-import { stateProblems } from "../chem/state";
+import { electronProblems, stateProblems } from "../chem/state";
 
 export type Severity = "error" | "warning";
 
@@ -59,16 +59,32 @@ function factLabel(catalog: Catalog, fact: string): string {
   return catalog.facts[fact]?.label ?? fact;
 }
 
-export function deriveFacts(def: NodeDef, id: string, parent?: Facts): Facts {
+// `delegated` holds the attributes set by the object the node delegates to.
+export function deriveFacts(
+  def: NodeDef,
+  id: string,
+  parent?: Facts,
+  delegated: Record<string, Scalar> = {},
+): Facts {
   const provides = new Set(def.provides ?? []);
   for (const p of def.passes ?? []) if (parent?.provides.has(p)) provides.add(p);
   return {
     id,
     type: def.name,
     provides,
-    attrs: { ...(parent?.attrs ?? {}), ...(def.sets ?? {}) },
+    attrs: { ...(parent?.attrs ?? {}), ...(def.sets ?? {}), ...delegated },
     systemId: def.kind === "system" ? id : parent?.systemId,
   };
+}
+
+// The attributes set by the objects in a node's delegates_to slot.
+function delegatedSets(catalog: Catalog, doc: GraphDoc, node: GraphNode, def: NodeDef): Record<string, Scalar> {
+  if (!def.delegates_to) return {};
+  const out: Record<string, Scalar> = {};
+  for (const cid of node.slots[def.delegates_to] ?? []) {
+    Object.assign(out, catalog.nodes[doc.nodes[cid]?.type]?.sets ?? {});
+  }
+  return out;
 }
 
 interface AttachProblem {
@@ -98,6 +114,9 @@ export function attachProblems(
   }
   if (def.kind === "solver" || def.kind === "value") {
     return [{ code: "kind", message: `${childType} goes inside another node, not after it.` }];
+  }
+  if (pdef?.kind === "analysis" && def.kind !== "analysis") {
+    return [{ code: "kind", message: `Only analysis nodes can follow ${parent.type}.` }];
   }
   if (def.parents && !def.parents.includes(parent.type)) {
     out.push({
@@ -129,8 +148,8 @@ export function attachProblems(
     }
   };
   checkAttrs(childType, def.requires_attrs ?? {});
-  if (child && def.inherit_requirements_from) {
-    for (const cid of child.slots[def.inherit_requirements_from] ?? []) {
+  if (child && def.delegates_to) {
+    for (const cid of child.slots[def.delegates_to] ?? []) {
       const c = doc.nodes[cid];
       const cdef = catalog.nodes[c.type];
       if (cdef) checkAttrs(c.type, cdef.requires_attrs ?? {}, cid);
@@ -175,34 +194,48 @@ function effective(catalog: Catalog, node: GraphNode, key: string): unknown {
   return def?.options[key]?.default;
 }
 
+// "<name>" is the node's type, option or slot; "<slot>.<name>" is the type or
+// an option of the first object in that slot.
+function nodeValue(ctx: RuleContext, node: GraphNode | undefined, rest: string[]): unknown {
+  if (!node) return undefined;
+  if (rest.length === 1) return rest[0] === "type" ? node.type : effective(ctx.catalog, node, rest[0]);
+  const first = node.slots[rest[0]]?.[0];
+  const child = first ? ctx.doc.nodes[first] : undefined;
+  if (!child) return undefined;
+  return rest[1] === "type" ? child.type : effective(ctx.catalog, child, rest[1]);
+}
+
 function resolvePath(path: string, ctx: RuleContext): unknown {
   const [scope, ...rest] = path.split(".");
-  if (scope === "self") return effective(ctx.catalog, ctx.node, rest[0]);
+  if (scope === "self") return nodeValue(ctx, ctx.node, rest);
   if (scope === "parent") {
-    if (rest[0] === "type") return ctx.parent?.type;
     if (rest[0] === "provides") return ctx.parentFacts?.provides ?? new Set();
-    return ctx.parentFacts?.attrs[rest[0]];
+    // Attributes flow down the chain, so read them from the facts.
+    if (rest[0] in ctx.catalog.attrs) return ctx.parentFacts?.attrs[rest[0]];
+    return nodeValue(ctx, ctx.parent, rest);
   }
-  if (scope === "system") {
-    const sys = ctx.system;
-    if (!sys) return undefined;
-    if (rest[0] === "type") return sys.type;
-    if (rest.length === 1) return effective(ctx.catalog, sys, rest[0]);
-    const first = sys.slots[rest[0]]?.[0];
-    return first ? effective(ctx.catalog, ctx.doc.nodes[first], rest[1]) : undefined;
-  }
+  if (scope === "system") return nodeValue(ctx, ctx.system, rest);
   throw new Error(`Unknown rule path ${path}`);
 }
 
-function holds(value: unknown, cond: Condition): boolean {
+function holds(value: unknown, cond: Condition, ctx: RuleContext): boolean {
   const eq = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
+  const bound = (b: number | string) => (typeof b === "number" ? b : resolvePath(b, ctx));
   if (cond === null || typeof cond !== "object") return eq(value, cond);
-  if ("not" in cond) return !eq(value, cond.not);
+  if ("not" in cond) {
+    return Array.isArray(cond.not) ? !cond.not.some((c) => eq(value, c)) : !eq(value, cond.not);
+  }
   if ("in" in cond) return cond.in.some((c) => eq(value, c));
   if ("set" in cond) return isSet(value) === cond.set;
   if ("has" in cond) return value instanceof Set ? value.has(cond.has) : false;
   if ("lacks" in cond) return value instanceof Set ? !value.has(cond.lacks) : true;
-  if ("gt" in cond) return typeof value === "number" && value > cond.gt;
+  if ("gt" in cond || "lt" in cond) {
+    const b = bound("gt" in cond ? cond.gt : cond.lt);
+    if (typeof value !== "number") return false;
+    // Another option that isn't a number yet leaves nothing to compare.
+    if (typeof b !== "number") return true;
+    return "gt" in cond ? value > b : value < b;
+  }
   if ("range" in cond) {
     return typeof value === "number" && value >= cond.range[0] && value <= cond.range[1];
   }
@@ -221,7 +254,7 @@ function ruleReferencesSelf(rule: Rule): boolean {
 
 function ruleHolds(rule: Rule, ctx: RuleContext): boolean {
   const all = (conds: Record<string, Condition>) =>
-    Object.entries(conds).every(([path, c]) => holds(resolvePath(path, ctx), c));
+    Object.entries(conds).every(([path, c]) => holds(resolvePath(path, ctx), c, ctx));
   if (rule.when && !all(rule.when)) return true;
   if (rule.require && !all(rule.require)) return false;
   if (rule.require_any && !rule.require_any.some((p) => isSet(resolvePath(p, ctx)))) return false;
@@ -300,7 +333,7 @@ export function analyze(doc: GraphDoc, catalog: Catalog): Analysis {
         }
       }
     }
-    facts[id] = deriveFacts(def, id, pf);
+    facts[id] = deriveFacts(def, id, pf, delegatedSets(catalog, doc, node, def));
   }
 
   for (const node of Object.values(doc.nodes)) {
@@ -365,6 +398,11 @@ export function analyze(doc: GraphDoc, catalog: Catalog): Analysis {
     if (node.type === "State" || node.type === "RelState") {
       for (const p of stateProblems(node, ctx.system)) {
         add(node.id, `state:${p.field}`, p.message, "error", p.field);
+      }
+    }
+    if (def.electrons) {
+      for (const p of electronProblems(node, def.electrons, ctx.system)) {
+        add(node.id, `electrons:${p.field}`, p.message, "error", p.field);
       }
     }
 

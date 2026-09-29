@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Mean field and properties
-order: 13
+order: 14
 title: Dipole, quadrupole and Mulliken charges
 summary: Analysis nodes on an RHF density. The script prints the dipole and traceless quadrupole moments and the Mulliken charges, and writes cube files for the HOMO and LUMO.
 tags: [properties, dipole, Mulliken, cube files]

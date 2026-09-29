@@ -1,0 +1,37 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Active-space methods
+order: 5
+title: Mutual correlation of stretched H2
+summary: A two-orbital CI on H2 at 10 Å, followed by a mutual correlation analysis of its 2-cumulant. The script prints the total correlation and the orbital-pair matrix M2.
+tags: [CI, mutual correlation, analysis]
+source: tests/props/test_mutcorr.py
+results:
+  - { label: "Total correlation", value: "0.875" }
+  - { label: "M2 (orbitals 0 and 1)", value: "0.75" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0.0 0.0 0.0
+        H 0.0 0.0 10.0
+      basis_set: sto-6g
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: ci
+    type: CI
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { active_orbitals: "[0, 1]" }
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }
+          davidson_liu_params: { type: DavidsonLiuParams, options: { e_tol: 1.0e-10, r_tol: 1.0e-5 } }
+  - id: mca
+    type: MutualCorrelationAnalysis
+    parent: ci

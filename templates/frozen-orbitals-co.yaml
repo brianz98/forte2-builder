@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Active-space methods
-order: 8
+order: 9
 title: Frozen core and frozen virtual orbitals
 summary: Two CASSCF calculations on CO from the same AVAS orbitals, one optimizing every orbital and one with the lowest orbital and the three highest frozen.
 tags: [CASSCF, AVAS, frozen orbitals]

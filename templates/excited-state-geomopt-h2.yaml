@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Gradients and geometry
-order: 24
+order: 25
 title: Excited-state geometry optimization
 summary: Optimize the H₂ geometry on the second root of a state-averaged CASSCF, using the analytic gradient of that root.
 tags: [geometry optimization, excited states, SA-CASSCF]

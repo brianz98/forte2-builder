@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 21
+order: 22
 title: Two-component ASET(0) embedding
 summary: Embedding in a two-component chain. A one-component CASSCF on HNNF becomes spinors through SpinorUpcaster, a two-component CASSCF follows, and ASET(0) then embeds the NNH fragment.
 tags: [relativistic, embedding, ASET, SpinorUpcaster]

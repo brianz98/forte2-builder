@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 16
+order: 17
 title: Spin-orbit splitting from spin-free CASSCF
 summary: Optimize orbitals with scalar X2C, upcast them to spinors, then diagonalize the spin-orbit X2C Hamiltonian in the active space.
 tags: [relativistic, X2C, SpinorUpcaster, two-component CI]

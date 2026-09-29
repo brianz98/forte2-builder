@@ -50,6 +50,53 @@ write_orbital_cubes(rhf.system, rhf.mos.C[0], indices=[5, 6])
     expect(py).not.toContain("avas.run()");
   });
 
+  it("chains analysis nodes, filling each from the one before", () => {
+    const doc = graph(
+      n2,
+      rhf,
+      { id: "iao", type: "IAO", parent: "rhf" },
+      { id: "iao_charges", type: "iao_partial_charge", parent: "iao" },
+      { id: "ibo", type: "IBO", parent: "rhf" },
+      { id: "cubes", type: "write_orbital_cubes", parent: "ibo", options: { indices: [0, 1] } },
+      {
+        id: "ci",
+        type: "CI",
+        parent: "rhf",
+        slots: { ci_solver: { type: "CISolver", options: { active_orbitals: "[5, 6]" }, slots: { states: state } } },
+      },
+      { id: "mca", type: "MutualCorrelationAnalysis", parent: "ci" },
+    );
+    expect(messages(doc)).toEqual([]);
+    const py = generatePython(doc, catalog);
+    expect(py).toContain(
+      "from forte2.orbitals import IAO, IBO\nfrom forte2.props import MutualCorrelationAnalysis, iao_partial_charge",
+    );
+    expect(py.slice(py.indexOf("ci.run()"))).toBe(
+      `ci.run()
+
+iao = IAO(rhf.system, rhf.C[0][:, : rhf.ndocc])
+iao_charges = iao_partial_charge(
+    iao.system, iao.make_sf_1rdm(rhf._build_total_density_matrix())
+)
+print(iao_charges)
+ibo = IBO(rhf.system, rhf.C[0][:, : rhf.ndocc])
+write_orbital_cubes(ibo.system, ibo.C_ibo, indices=[0, 1])
+mca = MutualCorrelationAnalysis(ci)
+print(mca.mutual_correlation_matrix_summary())
+`,
+    );
+  });
+
+  it("lets only analysis nodes follow an analysis node", () => {
+    const doc = graph(n2, rhf, { id: "ibo", type: "IBO", parent: "rhf" }, {
+      id: "ci",
+      type: "CI",
+      parent: "ibo",
+      slots: { ci_solver: { type: "CISolver", options: { active_orbitals: "[5, 6]" }, slots: { states: state } } },
+    });
+    expect(messages(doc)).toEqual(["ci: Only analysis nodes can follow IBO."]);
+  });
+
   it("checks what an analysis node needs from its method", () => {
     const doc = graph(
       n2,

@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Active-space methods
-order: 6
+order: 7
 title: Targeting a core-excited state with an energy shift
 summary: Full CI on CO in a minimal basis. An energy shift of −102 Eh makes the CI solver find the roots near that energy, which lands on a carbon 1s core-excited state.
 tags: [FCI, core excitation, CIParams]

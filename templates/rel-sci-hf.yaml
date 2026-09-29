@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 19
+order: 20
 title: Two-component selected CI
 summary: Spin-orbit X2C selected CI on HF. With a tight selection threshold, it reproduces the two-component CASCI energy.
 tags: [relativistic, selected CI, X2C]

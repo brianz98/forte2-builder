@@ -106,19 +106,36 @@ what can connect to what are the following:
 : Attributes that flow down the chain, such as `two_component` and `model`. A node inherits its
   parent's attributes unless it sets its own.
 
+`delegates_to`
+: The slot that holds the object a node hands its work to, such as a driver's `ci_solver`. The
+  node must meet that object's `requires_attrs` and passes its `sets` downstream. For example,
+  each solver sets `rdm3`, and DSRG requires `rdm3: true`, so DSRG can't follow a selected-CI
+  driver.
+
+`electrons`
+: The options that fix a mean-field node's electron count and spin. The builder runs the same
+  parity checks that forte2 runs when the node binds to a System.
+
 `rules`
 : Checks that the fields above can't express. For example, "spin-orbit X2C needs GHF" is a rule on
-  the one-component SCF classes.
+  the one-component SCF classes. A rule reads values through paths such as `self.charge`,
+  `self.ci_params.ci_algorithm`, `parent.final_orbitals`, `parent.ci_solver.type`, and
+  `system.symmetry`.
 
 `family`
 : Types that can replace each other, such as the SCF classes or the four solvers. The inspector's
   **Switch to** menu and the fix suggestions only swap a node for another type in its family.
 
-Post-processing functions, such as `get_1e_property`, are nodes of kind `analysis`. The generated
-script calls them after the chain runs. `bind` fills their leading arguments from the method they
-follow. For example, `g1: "{parent.ao_density}"` uses the expression that the method declares for
-the `ao_density` fact in its `exprs`. List the functions in `FUNCTIONS` in `tools/dump_forte2.py`
-so their parameters and descriptions come from forte2.
+Post-processing functions and classes, such as `get_1e_property` and `IAO`, are nodes of kind
+`analysis`. The generated script calls them after the chain runs. `bind` fills their leading
+arguments from the node they follow. For example, `g1: "{parent.ao_density}"` uses the expression
+that the method declares for the `ao_density` fact in its `exprs`. An analysis node that
+`provides` facts can feed other analysis nodes: `IAO` provides `iao_density` to
+`iao_partial_charge`. List the callables in `FUNCTIONS` in `tools/dump_forte2.py` so their
+parameters and descriptions come from forte2.
+
+[catalog/COVERAGE.md](catalog/COVERAGE.md) lists which parts of forte2's public API the catalog
+covers, which it leaves out and why, and the forte2 source of each check.
 
 When a check fails, the builder suggests fixes: connecting a loose node, inserting one node before
 the failing one, or switching the node or its upstream method to another type in its family. It

@@ -14,15 +14,25 @@
 #   sets       attributes set for everything downstream (else inherited)
 #   requires_attrs  attributes the parent must have
 #   slots      constructor arguments that take another catalog object
+#   delegates_to
+#              the slot holding the object this node hands its work to; the
+#              node must meet that object's requires_attrs and passes on its sets
 #   family     types that can replace each other in "Switch to" and fixes
 #   exprs      Python expressions offered downstream, keyed by fact ({self} is
-#              this node's variable)
-#   call, bind, result
-#              analysis nodes only: the function called after the chain runs,
-#              its arguments filled from the upstream method ({parent}, or
-#              {parent.<fact>} for one of its exprs), and the variable printed
-#   rules      extra checks; paths are self.<option>, parent.<type|provides|attr>,
-#              system.<type|option|slot.option>
+#              this node's variable, {parent.<fact>} its upstream's expression);
+#              a fact's own expr applies when a node doesn't define one
+#   electrons  the charge (and spin) options that fix the electron count, for
+#              the parity checks forte2 runs when the node binds to a System
+#   call, bind, result, print
+#              analysis nodes only: the function or class called after the
+#              chain runs, its arguments filled from the upstream node
+#              ({parent}, or {parent.<fact>} for one of its expressions), the
+#              variable that holds the result, and what to print (false for
+#              nothing, else an expression; the result when omitted)
+#   rules      extra checks; paths are self.<name>, parent.<name>, and
+#              system.<name>, where <name> is type, an option, a slot, an
+#              attribute (parent only), provides (parent only), or
+#              <slot>.<type|option> for the object in a slot
 
 forte2_version: "2026.9.1"
 release:
@@ -43,12 +53,14 @@ groups:
 
 facts:
   system: { label: a System }
-  mos: { label: orbitals }
+  mos: { label: orbitals, expr: "{self}.mos.C[0]" }
+  occupied_mos: { label: occupied orbitals }
   eps: { label: orbital energies }
   mo_space: { label: an active space }
   energy: { label: an energy }
   gradient: { label: a nuclear gradient }
   ao_density: { label: an AO density matrix }
+  iao_density: { label: a density matrix in the IAO basis }
 
 attrs:
   two_component:
@@ -57,6 +69,11 @@ attrs:
   model:
     "true": a model Hamiltonian
     "false": a molecular System
+  # Set by the solver a driver delegates to; forte2 declares it as the
+  # solver's _rdm_orders.
+  rdm3:
+    "true": a solver that computes 3-RDMs
+    "false": a solver without 3-RDMs (selected CI)
 
 nodes:
   # ---------------------------------------------------------------- systems
@@ -96,6 +113,19 @@ nodes:
       - require_any: [self.auxiliary_basis_set, self.cholesky_tei]
         field: auxiliary_basis_set
         message: Set auxiliary_basis_set, or turn on cholesky_tei. forte2 has no conventional four-index integrals.
+      - when: { self.cholesky_tei: true }
+        require: { self.auxiliary_basis_set: { set: false } }
+        severity: warning
+        field: auxiliary_basis_set
+        message: With cholesky_tei, forte2 ignores auxiliary_basis_set.
+      - when: { self.jk_mem_thres_mb: { set: true } }
+        require: { self.cholesky_tei: false }
+        field: jk_mem_thres_mb
+        message: jk_mem_thres_mb limits the density-fitted Fock build, so it can't be combined with cholesky_tei.
+      - when: { self.jk_mem_thres_mb: { set: true } }
+        require_any: [self.auxiliary_basis_set]
+        field: jk_mem_thres_mb
+        message: jk_mem_thres_mb needs auxiliary_basis_set.
 
   HubbardModel:
     kind: system
@@ -123,6 +153,7 @@ nodes:
     provides: [system, mos, eps, energy, ao_density]
     # forte2's own tests use this helper; every SCF class defines it.
     exprs: { ao_density: "{self}._build_total_density_matrix()" }
+    electrons: { charge: charge }
     card: [charge]
     options:
       charge: { example: 0 }
@@ -155,41 +186,51 @@ nodes:
     extends: _one_component_scf
     var: rhf
     summary: Restricted Hartree–Fock for closed-shell molecules.
-    provides: [system, mos, eps, energy, gradient, ao_density]
+    provides: [system, mos, occupied_mos, eps, energy, gradient, ao_density]
+    exprs: { occupied_mos: "{self}.C[0][:, : {self}.ndocc]" }
+    electrons: { charge: charge, closed_shell: true }
 
+  # forte2 defaults ms to None but raises unless it is set, so it is required
+  # here.
   ROHF:
     extends: _one_component_scf
     var: rohf
     summary: Restricted open-shell Hartree–Fock.
+    electrons: { charge: charge, ms: ms }
     card: [charge, ms]
     options:
-      ms: { type: float }
+      ms: { type: float, required: true }
 
   UHF:
     extends: _one_component_scf
     var: uhf
     summary: Unrestricted Hartree–Fock.
     provides: [system, mos, eps, energy, gradient, ao_density]
+    electrons: { charge: charge, ms: ms }
     card: [charge, ms]
     options:
-      ms: { type: float }
+      ms: { type: float, required: true }
       guess_mix: { advanced: true }
 
   CUHF:
     extends: _one_component_scf
     var: cuhf
     summary: Constrained unrestricted Hartree–Fock; equivalent to ROHF.
+    electrons: { charge: charge, ms: ms }
     card: [charge, ms]
     options:
-      ms: { type: float }
+      ms: { type: float, required: true }
       guess_mix: { advanced: true }
 
+  # GHF has gradient() but, unlike RHF and UHF, doesn't list "gradient" in its
+  # provides.
   GHF:
     extends: _scf
     var: ghf
     summary: Generalized (two-component) Hartree–Fock; required for spin-orbit X2C.
     provides: [system, mos, eps, energy, gradient, ao_density]
     sets: { two_component: true }
+    electrons: { charge: charge, ms: ms_guess }
     card: [charge]
     options:
       ms_guess: { type: float }
@@ -234,6 +275,8 @@ nodes:
         require: { self.sigma: { range: [0, 1] } }
         field: sigma
         message: sigma must be between 0 and 1.
+      - require_any: [system.minao_basis_set]
+        message: AVAS projects onto the minimal basis, so the System needs minao_basis_set.
 
   ASET:
     kind: method
@@ -290,12 +333,23 @@ nodes:
     import: forte2
     requires: [mos]
     provides: [system, mos, mo_space, energy]
-    inherit_requirements_from: ci_solver
+    delegates_to: ci_solver
     slots:
       ci_solver:
         accepts: [CISolver, SelectedCISolver, RelCISolver, RelSelectedCISolver]
         required: true
         positional: true
+    rules:
+      - when: { self.do_transition_dipole: true }
+        require: { parent.model: false }
+        field: do_transition_dipole
+        message: Transition dipoles need dipole integrals, which a model Hamiltonian doesn't have.
+      # The two-component solvers declare no cross-state RDMs.
+      - when: { self.do_transition_dipole: true }
+        require: { self.ci_solver.type: { not: [RelCISolver, RelSelectedCISolver] } }
+        severity: warning
+        field: do_transition_dipole
+        message: Two-component solvers don't compute transition densities between roots, so forte2 reports only each root's own dipole.
 
   CI:
     extends: _driver
@@ -371,15 +425,23 @@ nodes:
     extends: _solver
     summary: CI in a complete or generalized active space, in the CSF basis.
     requires_attrs: { two_component: false }
+    sets: { rdm3: true }
     slots:
       states: { accepts: [State], required: true, many: true }
       ci_params: { accepts: [CIParams], advanced: true }
       davidson_liu_params: { accepts: [DavidsonLiuParams], advanced: true }
+    rules:
+      - require: { self.ci_params.ci_algorithm: { not: sparse } }
+        field: ci_params
+        message: The "sparse" CI algorithm is for two-component solvers only.
 
+  # forte2 also accepts one SelectedCIParams and one DavidsonLiuParams per
+  # State, as lists; the builder offers one of each.
   SelectedCISolver:
     extends: _solver
     summary: Heat-bath selected CI; a drop-in replacement for CISolver.
     requires_attrs: { two_component: false }
+    sets: { rdm3: false }
     slots:
       states: { accepts: [State], required: true, many: true }
       sci_params: { accepts: [SelectedCIParams] }
@@ -389,6 +451,7 @@ nodes:
     extends: _solver
     summary: Two-component CI for spin-orbit Hamiltonians.
     requires_attrs: { two_component: true }
+    sets: { rdm3: true }
     card: [nel, nroots, core_orbitals, active_orbitals]
     slots:
       states: { accepts: [RelState, State], many: true }
@@ -402,11 +465,15 @@ nodes:
       - require_one: [self.nel, self.states]
         field: nel
         message: Set nel or add a state, but not both.
+      - require: { self.ci_params.ci_algorithm: { not: [kh, knowles-handy] } }
+        field: ci_params
+        message: The Knowles–Handy CI algorithm is for one-component solvers only. Use "hz", "exact", or "sparse".
 
   RelSelectedCISolver:
     extends: _solver
     summary: Two-component heat-bath selected CI.
     requires_attrs: { two_component: true }
+    sets: { rdm3: false }
     card: [nel, nroots, core_orbitals, active_orbitals]
     slots:
       states: { accepts: [RelState, State], many: true }
@@ -432,6 +499,8 @@ nodes:
     parents: [CI, MCOptimizer]
     requires: [mo_space]
     provides: [system, mos, mo_space, energy]
+    # The 3-cumulant comes from the solver's 3-RDM.
+    requires_attrs: { rdm3: true }
     card: [flow_param, relax_reference]
     options:
       flow_param: {}
@@ -474,6 +543,14 @@ nodes:
       project_orbitals: { advanced: true }
       residual_tol: { advanced: true }
     hide: [energy_accessor]
+    rules:
+      - require: { system.symmetry: false }
+        message: Finite differences move the atoms, which forte2 can't do with symmetry=True, because symmetry detection reorients the molecule. Turn off symmetry on the System.
+      # root indexes method.E, and every method here reports a single E; the
+      # per-root energies need energy_accessor.
+      - require: { self.root: { in: [null, 0] } }
+        field: root
+        message: Every method in the builder reports one energy, so root can only be 0. forte2 picks another root through energy_accessor, which the builder doesn't offer.
 
   GeometryOptimizer:
     kind: method
@@ -492,6 +569,38 @@ nodes:
       max_step: {}
       project_orbitals: { advanced: true }
     hide: [method_factory, lbfgs_kwargs]
+    rules:
+      - require: { system.symmetry: false }
+        message: Geometry optimization moves the atoms, which forte2 can't do with symmetry=True, because symmetry detection reorients the molecule. Turn off symmetry on the System.
+      # root reads method.E_ci[root] and calls method.gradient(root=root).
+      - when: { self.root: { not: null } }
+        require: { parent.type: MCOptimizer }
+        field: root
+        message: root picks one state of a state-averaged MCOptimizer. Clear root, or follow an MCOptimizer.
+      - when: { self.root: { not: null }, parent.type: MCOptimizer }
+        require: { parent.final_orbitals: original }
+        field: root
+        message: Gradients of one root of a state-averaged MCOptimizer need its final_orbitals to be "original".
+      - when: { self.root: { not: null }, parent.type: MCOptimizer }
+        require: { parent.two_component: false }
+        field: root
+        message: forte2 has no gradients for one root of a state-averaged two-component MCOptimizer.
+      # The analytic gradients: the checks in forte2.gradients.validation and
+      # mc_optimizer_grad._validate_casscf_gradient_request.
+      - when: { parent.type: { in: [RHF, UHF, GHF, MCOptimizer] } }
+        require: { system.cholesky_tei: false }
+        message: Analytic gradients need density fitting, not cholesky_tei. Turn off cholesky_tei, or put FDGradient before GeometryOptimizer.
+      - when: { parent.type: { in: [RHF, UHF, GHF, MCOptimizer] } }
+        require_any: [system.auxiliary_basis_set]
+        message: Analytic gradients need the System's auxiliary_basis_set.
+      - when: { parent.type: MCOptimizer }
+        require: { parent.active_frozen_orbitals: { set: false }, parent.freeze_inter_gas_rots: false }
+        message: forte2 has no CASSCF gradients with active_frozen_orbitals or freeze_inter_gas_rots. Clear them, or put FDGradient before GeometryOptimizer.
+      - when: { parent.type: MCOptimizer }
+        require:
+          parent.ci_solver.frozen_core_orbitals: { set: false }
+          parent.ci_solver.frozen_virtual_orbitals: { set: false }
+        message: forte2 has no CASSCF gradients with frozen orbitals. Clear the solver's frozen orbitals, or put FDGradient before GeometryOptimizer.
 
   # --------------------------------------------------------------- analysis
   write_orbital_cubes:
@@ -503,7 +612,7 @@ nodes:
     summary: Write orbitals to cube files for viewing in a molecular visualizer.
     requires: [mos]
     requires_attrs: { model: false }
-    bind: { system: "{parent}.system", C: "{parent}.mos.C[0]" }
+    bind: { system: "{parent}.system", C: "{parent.mos}" }
     card: [indices, prefix]
     options:
       indices: { type: "list[int]", placeholder: "all orbitals" }
@@ -521,7 +630,9 @@ nodes:
       spacing: { type: float }
       padding: { type: float }
     rules:
-      - require: { self.indices: { set: true } }
+      # IBOs are only the occupied orbitals, so writing all of them is fine.
+      - when: { parent.type: { not: IBO } }
+        require: { self.indices: { set: true } }
         field: indices
         severity: warning
         message: Without indices, this writes a cube file for every orbital.
@@ -565,6 +676,84 @@ nodes:
     requires: [ao_density]
     requires_attrs: { model: false, two_component: false }
     bind: { system: "{parent}.system", g1: "{parent.ao_density}" }
+
+  # IAO and IBO take the occupied orbitals of a closed-shell SCF, as in
+  # forte2's tests. Both keep .system, so the nodes that follow can bind it.
+  IAO:
+    kind: analysis
+    group: analysis
+    import: forte2.orbitals
+    call: IAO
+    var: iao
+    result: iao
+    print: false
+    summary: Intrinsic atomic orbitals, a minimal basis polarized by the occupied orbitals.
+    parents: [RHF]
+    requires: [occupied_mos, ao_density]
+    provides: [iao_density]
+    exprs: { iao_density: "{self}.make_sf_1rdm({parent.ao_density})" }
+    requires_attrs: { model: false }
+    bind: { system: "{parent}.system", C_occ: "{parent.occupied_mos}" }
+    # make_sf_1rdm raises NotImplementedError for j-adapted IAOs.
+    hide: [j_adapt]
+    rules:
+      - require_any: [system.minao_basis_set]
+        message: IAOs are built from the minimal basis, so the System needs minao_basis_set.
+
+  iao_partial_charge:
+    kind: analysis
+    group: analysis
+    import: forte2.props
+    call: iao_partial_charge
+    var: iao_charges
+    result: iao_charges
+    summary: IAO populations per basis function and partial charges per atom.
+    parents: [IAO]
+    requires: [iao_density]
+    bind: { system: "{parent}.system", g1_iao: "{parent.iao_density}" }
+
+  IBO:
+    kind: analysis
+    group: analysis
+    import: forte2.orbitals
+    call: IBO
+    var: ibo
+    result: ibo
+    print: false
+    summary: Intrinsic bond orbitals, localized occupied orbitals built from the IAOs.
+    parents: [RHF]
+    requires: [occupied_mos]
+    provides: [mos]
+    exprs: { mos: "{self}.C_ibo" }
+    requires_attrs: { model: false }
+    bind: { system: "{parent}.system", C_occ: "{parent.occupied_mos}" }
+    card: [maxiter, g_tol]
+    options:
+      maxiter: {}
+      g_tol: {}
+    rules:
+      - require_any: [system.minao_basis_set]
+        message: IBOs are built from the minimal basis, so the System needs minao_basis_set.
+
+  # Reads spin-dependent 1- and 2-RDMs from ci_solver.sub_solvers, so it
+  # needs a one-component solver.
+  MutualCorrelationAnalysis:
+    kind: analysis
+    group: analysis
+    import: forte2.props
+    call: MutualCorrelationAnalysis
+    var: mca
+    result: mca
+    print: "{self}.mutual_correlation_matrix_summary()"
+    summary: Total and orbital-pair mutual correlation, from the active-space 2-cumulant.
+    parents: [CI, MCOptimizer]
+    requires: [mo_space]
+    requires_attrs: { two_component: false }
+    bind: { solver: "{parent}" }
+    card: [root]
+    options:
+      root: {}
+      sub_solver_index: { advanced: true }
 
   # ------------------------------------------------------------- parameters
   State:
@@ -641,6 +830,13 @@ nodes:
       maxiter: {}
       e_tol: {}
       r_tol: {}
+    rules:
+      - require: { self.collapse_per_root: { gt: 0 } }
+        field: collapse_per_root
+        message: collapse_per_root must be at least 1.
+      - require: { self.basis_per_root: { gt: self.collapse_per_root } }
+        field: basis_per_root
+        message: basis_per_root must be greater than collapse_per_root.
 
   SelectedCIParams:
     kind: value

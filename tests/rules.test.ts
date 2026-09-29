@@ -65,10 +65,10 @@ describe("rules", () => {
   it("checks parents, provided facts and model systems", () => {
     const doc = graph(
       n2,
-      { id: "uhf", type: "UHF", parent: "system", options: { charge: 0 } },
+      { id: "uhf", type: "UHF", parent: "system", options: { charge: 0, ms: 0.0 } },
       { id: "avas", type: "AVAS", parent: "uhf", options: { subspace: ["N(2p)"] } },
       { id: "dsrg", type: "DSRG_MRPT2", parent: "uhf" },
-      { id: "rohf", type: "ROHF", parent: "system", options: { charge: 0 } },
+      { id: "rohf", type: "ROHF", parent: "system", options: { charge: 0, ms: 0.0 } },
       { id: "opt", type: "GeometryOptimizer", parent: "rohf" },
     );
     expect(messages(doc)).toEqual([
@@ -76,6 +76,83 @@ describe("rules", () => {
       "dsrg: DSRG_MRPT2 must follow CI or MCOptimizer, not UHF.",
       "dsrg: DSRG_MRPT2 needs an active space, which UHF doesn't provide.",
       "opt: GeometryOptimizer needs a nuclear gradient, which ROHF doesn't provide.",
+    ]);
+  });
+
+  it("checks the electron count of each SCF, as forte2 does on binding", () => {
+    const doc = graph(
+      n2,
+      { id: "rhf", type: "RHF", parent: "system", options: { charge: 1 } },
+      { id: "uhf", type: "UHF", parent: "system", options: { charge: 0, ms: 0.5 } },
+      { id: "rohf", type: "ROHF", parent: "system", options: { charge: 0 } },
+      { id: "cuhf", type: "CUHF", parent: "system", options: { charge: -1, ms: 0.5 } },
+      { id: "ghf", type: "GHF", parent: "system", options: { charge: 0, ms_guess: 0.5 } },
+    );
+    expect(messages(doc)).toEqual([
+      "rhf: RHF needs an even number of electrons, but this System has 13. Use ROHF or UHF, or change the charge.",
+      "uhf: ms = 0.5 doesn't fit 14 electrons.",
+      "rohf: Set ms.",
+      "ghf: ms_guess = 0.5 doesn't fit 14 electrons.",
+    ]);
+  });
+
+  it("checks what DSRG, solvers, drivers and gradients need beyond the chain facts", () => {
+    const solver = (type: string, extra: Record<string, unknown> = {}) => ({
+      type,
+      options: { active_orbitals: "[4, 5, 6, 7, 8, 9]", core_orbitals: "[0, 1, 2, 3]", ...extra },
+      slots: { states: state },
+    });
+    const doc = graph(
+      { ...n2, options: { ...n2.options, symmetry: true } },
+      { id: "rhf", type: "RHF", parent: "system", options: { charge: 0 } },
+      { id: "sci", type: "CI", parent: "rhf", slots: { ci_solver: solver("SelectedCISolver") } },
+      { id: "dsrg", type: "DSRG_MRPT2", parent: "sci" },
+      {
+        id: "mc",
+        type: "MCOptimizer",
+        parent: "rhf",
+        options: { active_frozen_orbitals: [4] },
+        slots: { ci_solver: solver("CISolver", { frozen_core_orbitals: "[0]" }) },
+      },
+      { id: "opt", type: "GeometryOptimizer", parent: "mc", options: { root: 1 } },
+      { id: "fd", type: "FDGradient", parent: "rhf", options: { root: 1 } },
+    );
+    expect(messages(doc)).toEqual([
+      "dsrg: DSRG_MRPT2 needs a solver that computes 3-RDMs, but CI gives a solver without 3-RDMs (selected CI).",
+      "opt: Geometry optimization moves the atoms, which forte2 can't do with symmetry=True, because symmetry detection reorients the molecule. Turn off symmetry on the System.",
+      'opt: Gradients of one root of a state-averaged MCOptimizer need its final_orbitals to be "original".',
+      "opt: forte2 has no CASSCF gradients with active_frozen_orbitals or freeze_inter_gas_rots. Clear them, or put FDGradient before GeometryOptimizer.",
+      "opt: forte2 has no CASSCF gradients with frozen orbitals. Clear the solver's frozen orbitals, or put FDGradient before GeometryOptimizer.",
+      "fd: Finite differences move the atoms, which forte2 can't do with symmetry=True, because symmetry detection reorients the molecule. Turn off symmetry on the System.",
+      "fd: Every method in the builder reports one energy, so root can only be 0. forte2 picks another root through energy_accessor, which the builder doesn't offer.",
+    ]);
+
+    const rel = graph(
+      { ...n2, options: { ...n2.options, cholesky_tei: true, auxiliary_basis_set: undefined } },
+      { id: "ghf", type: "GHF", parent: "system", options: { charge: 0 } },
+      { id: "opt", type: "GeometryOptimizer", parent: "ghf", options: { root: 0 } },
+      {
+        id: "ci",
+        type: "CI",
+        parent: "ghf",
+        options: { do_transition_dipole: true },
+        slots: {
+          ci_solver: {
+            type: "RelCISolver",
+            options: { nel: 14, active_orbitals: "12" },
+            slots: { ci_params: { type: "CIParams", options: { ci_algorithm: "kh" } } },
+          },
+        },
+      },
+    );
+    expect(messages(rel)).toEqual([
+      "opt: root picks one state of a state-averaged MCOptimizer. Clear root, or follow an MCOptimizer.",
+      "opt: Analytic gradients need density fitting, not cholesky_tei. Turn off cholesky_tei, or put FDGradient before GeometryOptimizer.",
+      "opt: Analytic gradients need the System's auxiliary_basis_set.",
+      'ci.ci_solver: The Knowles–Handy CI algorithm is for one-component solvers only. Use "hz", "exact", or "sparse".',
+    ]);
+    expect(messages(rel, "warning")).toEqual([
+      "ci: Two-component solvers don't compute transition densities between roots, so forte2 reports only each root's own dipole.",
     ]);
   });
 

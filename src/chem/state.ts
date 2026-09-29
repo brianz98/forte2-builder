@@ -1,4 +1,4 @@
-import type { Catalog } from "../catalog/types";
+import type { Catalog, Electrons } from "../catalog/types";
 import type { GraphDoc, GraphNode } from "../graph/types";
 import { rootSystemOf, setOption } from "../graph/ops";
 import { nuclearCharge, parseAtoms } from "./xyz";
@@ -52,6 +52,58 @@ export function stateProblems(
     }
   }
   return out;
+}
+
+// Electrons for a mean-field node: the System's nuclear charge minus the
+// node's charge. A model Hamiltonian has no nuclei, so there the count is
+// minus the charge.
+function boundElectrons(node: GraphNode, e: Electrons, system: GraphNode): number | undefined {
+  const charge = Number(node.options[e.charge] ?? 0);
+  if (!Number.isInteger(charge)) return undefined;
+  if (system.type === "HubbardModel") return -charge;
+  if (typeof system.options.xyz !== "string") return undefined;
+  const atoms = parseAtoms(system.options.xyz);
+  return atoms ? nuclearCharge(atoms) - charge : undefined;
+}
+
+// The electron-count checks forte2's SCF classes run when they bind to a
+// System.
+export function electronProblems(
+  node: GraphNode,
+  e: Electrons,
+  system: GraphNode | undefined,
+): { field: string; message: string }[] {
+  const nel = system ? boundElectrons(node, e, system) : undefined;
+  if (nel === undefined) return [];
+  if (nel < 0) {
+    return [{ field: e.charge, message: `A charge of ${node.options[e.charge]} leaves ${nel} electrons.` }];
+  }
+  if (e.closed_shell && nel % 2 === 1) {
+    return [
+      {
+        field: e.charge,
+        message: `${node.type} needs an even number of electrons, but this System has ${nel}. Use ROHF or UHF, or change the charge.`,
+      },
+    ];
+  }
+  const ms = e.ms ? node.options[e.ms] : undefined;
+  if (!e.ms || typeof ms !== "number") return [];
+  const twice = 2 * ms;
+  if (!Number.isInteger(twice)) {
+    return [{ field: e.ms, message: `${e.ms} must be a multiple of 0.5.` }];
+  }
+  if (Math.abs(twice) % 2 !== nel % 2) {
+    return [{ field: e.ms, message: `${e.ms} = ${ms} doesn't fit ${nel} electrons.` }];
+  }
+  if (Math.abs(twice) > nel) {
+    return [
+      {
+        field: e.ms,
+        message: `${e.ms} = ${ms} needs at least ${Math.abs(twice)} electrons; this System has ${nel}.`,
+      },
+    ];
+  }
+  return [];
 }
 
 // A new State defaults to a singlet; make each State that `doc` adds to

@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Model Hamiltonians
-order: 25
+order: 26
 title: Full CI on a 2D Hubbard lattice
 summary: Model Hamiltonians plug into the same chain. Here, an open 2 × 4 Hubbard lattice at half filling, solved exactly.
 tags: [model Hamiltonian, FCI]

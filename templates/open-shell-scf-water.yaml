@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Mean field and properties
-order: 12
+order: 13
 title: UHF, ROHF and CUHF for triplet water
 summary: Three open-shell mean-field methods on the same triplet state. UHF reaches a lower energy at the cost of spin contamination; CUHF reproduces ROHF.
 tags: [UHF, ROHF, CUHF, open shell]

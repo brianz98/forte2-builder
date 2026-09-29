@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Active-space methods
-order: 9
+order: 10
 title: Point-group symmetry and Cholesky integrals
 summary: CASSCF on N₂ with its point group detected automatically and the two-electron integrals Cholesky-decomposed instead of density-fitted, so no auxiliary basis is needed.
 tags: [symmetry, Cholesky, CASSCF]

@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Gradients and geometry
-order: 23
+order: 24
 title: Geometry optimization with finite-difference gradients
 summary: FDGradient differentiates the energy of the method before it, here RHF, so GeometryOptimizer can drive methods that have no analytic gradient.
 tags: [geometry optimization, finite differences]

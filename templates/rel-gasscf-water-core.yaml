@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 20
+order: 21
 title: Spin-orbit core excitation with frozen 1s spinors
 summary: Two-component GASSCF on water. The O 1s spinors hold at most one electron and stay frozen, and spin-orbit coupling mixes the singlet and triplet core-excited states.
 tags: [relativistic, GASSCF, core excitation, RelState]

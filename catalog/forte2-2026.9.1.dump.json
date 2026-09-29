@@ -2644,6 +2644,99 @@
     }
   },
   "functions": {
+    "IAO": {
+      "module": "forte2.orbitals.iao",
+      "summary": "Class to represent the intrinsic atomic orbital (IAO).",
+      "options": [
+        {
+          "name": "system",
+          "type": "forte2.system.system.System",
+          "required": true,
+          "doc": "The system for which the IAO is to be calculated."
+        },
+        {
+          "name": "C_occ",
+          "type": "numpy.ndarray",
+          "required": true,
+          "doc": "The occupied molecular orbital coefficients."
+        },
+        {
+          "name": "j_adapt",
+          "type": "",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "IBO": {
+      "module": "forte2.orbitals.iao",
+      "summary": "Class to represent the intrinsic bond orbital basis.",
+      "options": [
+        {
+          "name": "system",
+          "type": "forte2.system.system.System",
+          "required": true,
+          "doc": "The system for which the IBO is to be calculated."
+        },
+        {
+          "name": "C_occ",
+          "type": "numpy.ndarray",
+          "required": true,
+          "doc": "The occupied molecular orbital coefficients."
+        },
+        {
+          "name": "maxiter",
+          "type": "int, optional, default=10",
+          "required": false,
+          "doc": "The maximum number of iterations for the IBO optimization.",
+          "default": {
+            "value": 10
+          }
+        },
+        {
+          "name": "g_tol",
+          "type": "float, optional, default=1e-8",
+          "required": false,
+          "doc": "The RMS gradient convergence criterion for the IBO optimization.",
+          "default": {
+            "value": 1e-08
+          }
+        }
+      ]
+    },
+    "MutualCorrelationAnalysis": {
+      "module": "forte2.props.mutual_correlation",
+      "summary": "Performs a mutual correlation analysis.",
+      "options": [
+        {
+          "name": "solver",
+          "type": "forte2 solver object of type ActiveSpaceSolver",
+          "required": true,
+          "doc": "The solver from which to extract the RDMs."
+        },
+        {
+          "name": "root",
+          "type": "int, optional",
+          "required": false,
+          "doc": "The root index for which to perform the analysis. Default is 0.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "sub_solver_index",
+          "type": "int, optional",
+          "required": false,
+          "doc": "The index of the sub-solver within the active space solver. Default is 0.",
+          "default": {
+            "value": 0
+          }
+        }
+      ]
+    },
     "get_1e_property": {
       "module": "forte2.props.props",
       "summary": "Calculate a one-electron property using AO-basis quantities.",
@@ -2683,6 +2776,24 @@
           "default": {
             "value": "debye"
           }
+        }
+      ]
+    },
+    "iao_partial_charge": {
+      "module": "forte2.props.props",
+      "summary": "Perform partial charge analysis using IAOs.",
+      "options": [
+        {
+          "name": "system",
+          "type": "System",
+          "required": true,
+          "doc": "The system for which the partial charge is calculated."
+        },
+        {
+          "name": "g1_iao",
+          "type": "NDArray",
+          "required": true,
+          "doc": "The 1-particle spin-free density matrix in the IAO basis.\nCalulated using `forte2.orbitlas.iao.IAO.make_sf_1rdm`."
         }
       ]
     },

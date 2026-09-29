@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 18
+order: 19
 title: Two-component CASSCF → DSRG-MRPT2
 summary: Carbon atom ³P fine structure with spin-orbit X2C, a two-component SA-CASSCF over nine states, and relativistic DSRG-MRPT2.
 tags: [relativistic, X2C, GHF, two-component CASSCF, DSRG-MRPT2]

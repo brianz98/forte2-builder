@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Dynamic correlation and embedding
-order: 10
+order: 11
 title: CASSCF → DSRG-MRPT2 with reference relaxation
 summary: A (6,6) CASSCF on stretched N₂, then DSRG-MRPT2 relaxing the CAS reference until it converges.
 tags: [CASSCF, DSRG-MRPT2]

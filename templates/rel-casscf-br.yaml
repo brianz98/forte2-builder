@@ -1,7 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
 section: Relativistic
-order: 17
+order: 18
 title: Two-component CASSCF on bromine
 summary: A spin-orbit CASSCF averaged over the six states of the Br ²P term, starting from GHF orbitals of the closed-shell bromide anion.
 tags: [relativistic, heavy element, two-component CASSCF]

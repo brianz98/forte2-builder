@@ -1,5 +1,6 @@
 import type {
   Catalog,
+  Electrons,
   NodeDef,
   OptionDef,
   OptionType,
@@ -48,11 +49,13 @@ interface RawNode {
   passes?: string[];
   sets?: Record<string, Scalar>;
   requires_attrs?: Record<string, Scalar>;
-  inherit_requirements_from?: string;
+  delegates_to?: string;
   exprs?: Record<string, string>;
+  electrons?: Electrons;
   call?: string;
   bind?: Record<string, string>;
   result?: string;
+  print?: false | string;
   slots?: Record<string, SlotDef>;
   options?: Record<string, RawOption>;
   hide?: string[];
@@ -210,11 +213,13 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
       passes: r.passes ?? [],
       sets: r.sets ?? {},
       requires_attrs: r.requires_attrs ?? {},
-      inherit_requirements_from: r.inherit_requirements_from,
+      delegates_to: r.delegates_to,
       exprs: r.exprs ?? {},
+      electrons: r.electrons,
       call: r.call,
       bind: r.bind,
       result: r.result,
+      print: r.print,
       slots,
       options,
       card: r.card,
@@ -271,15 +276,30 @@ function checkReferences(c: Catalog): string[] {
       }
     }
     if (n.kind === "analysis" && !n.call) out.push(`${n.name}: an analysis node needs call`);
-    for (const expr of Object.values(n.bind ?? {})) {
+    const templates = [
+      ...Object.values(n.bind ?? {}).map((t) => ["bind", t]),
+      ...Object.values(n.exprs ?? {}).map((t) => ["exprs", t]),
+    ];
+    for (const [field, expr] of templates) {
       for (const [, fact] of expr.matchAll(/\{parent\.(\w+)\}/g)) {
         if (!(n.requires ?? []).includes(fact)) {
-          out.push(`${n.name}: bind uses {parent.${fact}}, so requires must list ${fact}`);
+          out.push(`${n.name}: ${field} uses {parent.${fact}}, so requires must list ${fact}`);
         }
       }
     }
-    if (n.inherit_requirements_from && !n.slots[n.inherit_requirements_from]) {
-      out.push(`${n.name}: inherit_requirements_from names no slot`);
+    if (n.delegates_to && !n.slots[n.delegates_to]) {
+      out.push(`${n.name}: delegates_to names no slot`);
+    }
+    for (const key of ["charge", "ms"] as const) {
+      const opt = n.electrons?.[key];
+      if (opt && !n.options[opt]) out.push(`${n.name}: electrons.${key} names no option`);
+    }
+    if (n.print !== undefined && !n.result) out.push(`${n.name}: print needs result`);
+    if (n.kind === "analysis" && (n.provides ?? []).length > 0 && !n.result) {
+      out.push(`${n.name}: an analysis node that provides facts needs result`);
+    }
+    for (const fact of [...(n.requires ?? []), ...(n.provides ?? [])]) {
+      if (!c.facts[fact]) out.push(`${n.name}: unknown fact ${fact}`);
     }
     for (const card of n.card ?? []) {
       if (!n.options[card] && !n.slots[card]) out.push(`${n.name}: card lists unknown ${card}`);

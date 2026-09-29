@@ -171,15 +171,19 @@ export function generatePython(
   const hoisted: string[] = [];
   const analyses: string[] = [];
 
-  // Fill "{parent}" and "{parent.<fact>}" in an analysis node's bound argument.
-  const boundExpr = (template: string, parent: GraphNode): string => {
-    const parentVar = vars.get(parent.id)!;
-    const exprs = defOf(parent)?.exprs ?? {};
+  // Fill a template written from `node`'s point of view: "{self}" is its
+  // variable, "{parent}" its upstream's, and "{parent.<fact>}" the upstream's
+  // expression for that fact, itself filled from the upstream's point of view.
+  const fill = (template: string, node: GraphNode): string => {
+    const parent = node.parent ? doc.nodes[node.parent] : undefined;
     return template
-      .replace(/\{parent\.(\w+)\}/g, (_, fact: string) =>
-        (exprs[fact] ?? "None").replace(/\{self\}/g, parentVar),
-      )
-      .replace(/\{parent\}/g, parentVar);
+      .replace(/\{parent\.(\w+)\}/g, (_, fact: string) => (parent ? factExpr(parent, fact) : "None"))
+      .replace(/\{parent\}/g, parent ? vars.get(parent.id)! : "None")
+      .replace(/\{self\}/g, vars.get(node.id)!);
+  };
+  const factExpr = (node: GraphNode, fact: string): string => {
+    const template = defOf(node)?.exprs?.[fact] ?? catalog.facts[fact]?.expr;
+    return template ? fill(template, node) : "None";
   };
 
   const exprFor = (node: GraphNode, pre: string[]): Expr => {
@@ -187,7 +191,7 @@ export function generatePython(
     const args: Arg[] = [];
     if (def.bind && node.parent) {
       for (const template of Object.values(def.bind)) {
-        args.push({ value: { kind: "raw", text: boundExpr(template, doc.nodes[node.parent]) } });
+        args.push({ value: { kind: "raw", text: fill(template, node) } });
       }
     }
     const slotExpr = (slot: string): Expr | undefined => {
@@ -254,8 +258,8 @@ export function generatePython(
     const e = exprFor(node, pre);
     if (def.kind === "analysis") {
       if (def.result) {
-        const name = vars.get(id)!;
-        analyses.push(assign(name, e), `print(${name})`);
+        analyses.push(assign(vars.get(id)!, e));
+        if (def.print !== false) analyses.push(`print(${fill(def.print ?? "{self}", node)})`);
       } else {
         analyses.push(render(e, 0, 0));
       }

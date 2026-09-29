@@ -62,12 +62,12 @@ describe("fix suggestions", () => {
   });
 
   it("connects a loose method to the nodes it can follow", () => {
-    const doc = graph(n2, rhf, { id: "rohf", type: "ROHF", options: { charge: 0 } });
+    const doc = graph(n2, rhf, { id: "rohf", type: "ROHF", options: { charge: 0, ms: 0.0 } });
     expect(fixesFor(doc)).toEqual([["Connect after System", 0]]);
   });
 
   it("suggests fixes for a connection the canvas refuses", () => {
-    const doc = graph(n2, { id: "uhf", type: "UHF", parent: "system", options: { charge: 0 } }, {
+    const doc = graph(n2, { id: "uhf", type: "UHF", parent: "system", options: { charge: 0, ms: 0.0 } }, {
       id: "avas",
       type: "AVAS",
       options: { subspace: ["N(2p)"] },

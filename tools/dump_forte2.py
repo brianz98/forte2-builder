@@ -33,10 +33,16 @@ EXTRA_CLASSES = [
     "forte2.dsrg:RelDSRG_MRPT2",
 ]
 
+# Called after the chain runs. Classes that aren't dataclasses go here too,
+# since their parameters come from the signature of __init__.
 FUNCTIONS = [
     "forte2:get_1e_property",
     "forte2:mulliken_population",
     "forte2:write_orbital_cubes",
+    "forte2.orbitals:IAO",
+    "forte2.orbitals:IBO",
+    "forte2.props:iao_partial_charge",
+    "forte2.props:MutualCorrelationAnalysis",
 ]
 
 
