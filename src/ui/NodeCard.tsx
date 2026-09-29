@@ -1,5 +1,5 @@
-import { memo, type CSSProperties, type MouseEvent } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { memo, useEffect, type CSSProperties, type MouseEvent } from "react";
+import { Handle, Position, useUpdateNodeInternals, type NodeProps } from "@xyflow/react";
 import { useStore } from "../store";
 import { slotDescendants } from "../graph/ops";
 import { chipText, showOption, systemFormula, toSubscript } from "./summarize";
@@ -16,7 +16,7 @@ function worst(issues: Issue[] | undefined): "error" | "warning" | undefined {
   return issues.some((i) => i.severity === "error") ? "error" : "warning";
 }
 
-export const NodeCard = memo(function NodeCard({ data }: NodeProps) {
+export const NodeCard = memo(function NodeCard({ id, data }: NodeProps) {
   const { nodeId } = data as CardData;
   const node = useStore((s) => s.doc.nodes[nodeId]);
   const doc = useStore((s) => s.doc);
@@ -25,6 +25,19 @@ export const NodeCard = memo(function NodeCard({ data }: NodeProps) {
   const selectedId = useStore((s) => s.selectedId);
   const design = useStore((s) => s.design);
   const select = useStore((s) => s.select);
+  const updateNodeInternals = useUpdateNodeInternals();
+  // React Flow measures handle positions once; when they move (a new flow
+  // direction, or a slot handle appearing), edges keep the old positions
+  // until the node is re-measured.
+  const handleLayout = [
+    design.direction,
+    design.slots,
+    node ? Object.values(node.slots).some((ids) => ids.length > 0) : false,
+    !!node?.owner,
+  ].join("|");
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [handleLayout, id, updateNodeInternals]);
   if (!node) return null;
   const def = catalog.nodes[node.type];
   if (!def) {
