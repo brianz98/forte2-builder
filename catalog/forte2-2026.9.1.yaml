@@ -1,0 +1,577 @@
+# Curated catalog for forte2 2026.9.1.
+#
+# This file holds what can't be read from the code: how classes compose, which
+# options matter, and the compatibility rules. Option types, defaults and
+# descriptions come from forte2-2026.9.1.dump.json (tools/dump_forte2.py); any
+# option listed here overrides the dump field by field. Constructor arguments
+# not listed here still appear in the builder, under "Advanced", unless hidden.
+#
+# Node fields
+#   kind       system | method | driver | solver | value
+#   parents    chain nodes this one may follow (any, when omitted)
+#   requires   facts the parent must provide; provides: facts this node offers
+#   passes     facts forwarded from the parent when it has them
+#   sets       attributes set for everything downstream (else inherited)
+#   requires_attrs  attributes the parent must have
+#   slots      constructor arguments that take another catalog object
+#   rules      extra checks; paths are self.<option>, parent.<type|provides|attr>,
+#              system.<type|option|slot.option>
+
+forte2_version: "2026.9.1"
+docs_base: "https://forte2.readthedocs.io/en/latest/autoapi/"
+
+groups:
+  system: { label: System, color: slate }
+  scf: { label: Mean field, color: blue }
+  orbitals: { label: Orbitals, color: teal }
+  drivers: { label: Active space, color: violet }
+  solvers: { label: Active-space solvers, color: fuchsia }
+  correlation: { label: Dynamic correlation, color: orange }
+  geometry: { label: Gradients and geometry, color: green }
+  params: { label: Parameters, color: gray }
+
+facts:
+  system: { label: a System }
+  mos: { label: orbitals }
+  eps: { label: orbital energies }
+  mo_space: { label: an active space }
+  energy: { label: an energy }
+  gradient: { label: a nuclear gradient }
+
+attrs:
+  two_component:
+    "true": two-component (spinor) orbitals
+    "false": one-component orbitals
+  model:
+    "true": a model Hamiltonian
+    "false": a molecular System
+
+nodes:
+  # ---------------------------------------------------------------- systems
+  System:
+    kind: system
+    group: system
+    import: forte2
+    var: system
+    summary: A molecule with its basis sets and Hamiltonian.
+    provides: [system]
+    sets: { two_component: false, model: false }
+    card: [basis_set, auxiliary_basis_set, x2c]
+    slots:
+      x2c: { accepts: [X2CParams] }
+    options:
+      xyz:
+        type: text
+        example: "N 0.0 0.0 0.0\nN 0.0 0.0 1.1"
+      basis_set:
+        type: str
+        example: cc-pvdz
+        suggest: [sto-3g, 6-31g, cc-pvdz, cc-pvtz, aug-cc-pvdz, def2-svp, def2-tzvp, decon-cc-pvtz]
+      auxiliary_basis_set:
+        type: str
+        example: cc-pvtz-jkfit
+        suggest: [def2-universal-jkfit, cc-pvdz-jkfit, cc-pvtz-jkfit, cc-pvqz-jkfit]
+      unit: {}
+      symmetry: {}
+      cholesky_tei: {}
+      cholesky_tol: { advanced: true }
+      use_gaussian_charges: { advanced: true }
+      minao_basis_set:
+        type: str
+        advanced: true
+        doc: The minimal basis used by the SAP guess, AVAS and IAOs.
+    rules:
+      - require_any: [self.auxiliary_basis_set, self.cholesky_tei]
+        field: auxiliary_basis_set
+        message: Set auxiliary_basis_set, or turn on cholesky_tei. forte2 has no conventional four-index integrals.
+
+  HubbardModel:
+    kind: system
+    group: system
+    import: forte2
+    var: system
+    summary: A one- or two-dimensional Hubbard model Hamiltonian.
+    provides: [system]
+    sets: { two_component: false, model: true }
+    card: [nsites, t, U]
+    options:
+      t: { type: float, example: 1.0 }
+      U: { type: float, example: 4.0 }
+      nsites: { type: py, example: "8", placeholder: "8, or (4, 4) for 2D" }
+      pbc: { type: bool }
+
+  # ------------------------------------------------------------- mean field
+  _scf:
+    abstract: true
+    kind: method
+    group: scf
+    import: forte2
+    parents: [System, HubbardModel]
+    provides: [system, mos, eps, energy]
+    card: [charge]
+    options:
+      charge: { example: 0 }
+      guess_type: { type: enum, values: [minao, hcore] }
+      e_tol: {}
+      d_tol: {}
+      maxiter: {}
+      level_shift: { type: float, advanced: true }
+      do_diis: { advanced: true }
+      diis_start: { advanced: true }
+      diis_nvec: { advanced: true }
+      diis_min: { advanced: true }
+      level_shift_thresh: { advanced: true }
+      die_if_not_converged: { advanced: true }
+    rules:
+      - when: { system.type: HubbardModel }
+        require: { self.guess_type: hcore }
+        field: guess_type
+        message: Model Hamiltonians have no minimal basis for the SAP guess. Use guess_type="hcore".
+
+  _one_component_scf:
+    abstract: true
+    extends: _scf
+    sets: { two_component: false }
+    rules:
+      - require: { system.x2c.x2c_type: { not: so } }
+        message: Spin-orbit X2C needs GHF. Use GHF, or set the System's X2C to x2c_type="sf".
+
+  RHF:
+    extends: _one_component_scf
+    var: rhf
+    summary: Restricted Hartree–Fock for closed-shell molecules.
+    provides: [system, mos, eps, energy, gradient]
+
+  ROHF:
+    extends: _one_component_scf
+    var: rohf
+    summary: Restricted open-shell Hartree–Fock.
+    card: [charge, ms]
+    options:
+      ms: { type: float }
+
+  UHF:
+    extends: _one_component_scf
+    var: uhf
+    summary: Unrestricted Hartree–Fock.
+    provides: [system, mos, eps, energy, gradient]
+    card: [charge, ms]
+    options:
+      ms: { type: float }
+      guess_mix: { advanced: true }
+
+  CUHF:
+    extends: _one_component_scf
+    var: cuhf
+    summary: Constrained unrestricted Hartree–Fock; equivalent to ROHF.
+    card: [charge, ms]
+    options:
+      ms: { type: float }
+      guess_mix: { advanced: true }
+
+  GHF:
+    extends: _scf
+    var: ghf
+    summary: Generalized (two-component) Hartree–Fock; required for spin-orbit X2C.
+    provides: [system, mos, eps, energy, gradient]
+    sets: { two_component: true }
+    card: [charge]
+    options:
+      ms_guess: { type: float }
+      guess_mix: { advanced: true }
+      alpha_beta_mix: { advanced: true }
+      break_complex_symmetry: { advanced: true }
+      j_adapt: { advanced: true }
+
+  # --------------------------------------------------------------- orbitals
+  AVAS:
+    kind: method
+    group: orbitals
+    import: forte2
+    var: avas
+    summary: Pick an active space by projecting orbitals onto atomic valence orbitals.
+    parents: [RHF, ROHF, GHF]
+    requires: [mos]
+    provides: [system, mos, mo_space]
+    requires_attrs: { model: false }
+    card: [subspace, selection_method]
+    options:
+      subspace: { type: "list[str]", example: ["N(2p)"], placeholder: "N(2p), C1-3(2s)" }
+      subspace_pi_planes: { type: py, placeholder: '[["C1-3"]]' }
+      selection_method: { type: enum, values: [cumulative, cutoff, separate, total] }
+      sigma: {}
+      cutoff: {}
+      num_active: {}
+      num_active_docc: {}
+      num_active_uocc: {}
+      diagonalize: { advanced: true }
+      evals_threshold: { advanced: true }
+    rules:
+      - when: { self.selection_method: total }
+        require: { self.num_active: { gt: 0 } }
+        field: num_active
+        message: selection_method="total" needs num_active greater than 0.
+      - when: { self.selection_method: separate, parent.type: { not: ROHF } }
+        require_any: [self.num_active_docc, self.num_active_uocc]
+        field: num_active_docc
+        message: selection_method="separate" needs num_active_docc or num_active_uocc greater than 0.
+      - when: { self.selection_method: cumulative }
+        require: { self.sigma: { range: [0, 1] } }
+        field: sigma
+        message: sigma must be between 0 and 1.
+
+  ASET:
+    kind: method
+    group: orbitals
+    import: forte2
+    var: aset
+    summary: Split the active space into a fragment and its environment (ASET(0) embedding).
+    parents: [MCOptimizer]
+    requires: [mo_space]
+    provides: [system, mos, mo_space]
+    requires_attrs: { model: false }
+    card: [fragment, cutoff_method, cutoff]
+    options:
+      fragment: { type: "list[str]", example: ["C1-2"], placeholder: "C1-2, H1-3" }
+      cutoff_method: { type: enum, values: [threshold, num_of_orbitals] }
+      cutoff: {}
+      num_A_occ: {}
+      num_A_vir: {}
+      frozen_core_orbitals: { type: py, advanced: true }
+      frozen_virtual_orbitals: { type: py, advanced: true }
+    rules:
+      - when: { self.cutoff_method: threshold }
+        require: { self.cutoff: { range: [0, 1] } }
+        field: cutoff
+        message: With cutoff_method="threshold", cutoff must be between 0 and 1.
+
+  SpinorUpcaster:
+    kind: method
+    group: orbitals
+    import: forte2
+    var: upcaster
+    summary: Turn one-component orbitals into spinors so two-component methods can follow.
+    requires: [mos]
+    provides: [system, mos]
+    passes: [mo_space]
+    sets: { two_component: true }
+    card: [x2c_override]
+    slots:
+      x2c_override: { accepts: [X2CParams] }
+    options:
+      apply_random_phase: { advanced: true }
+    hide: [rng]
+    rules:
+      - require: { parent.two_component: false }
+        severity: warning
+        message: The upstream orbitals are already two-component, so this only applies x2c_override.
+
+  # ----------------------------------------------------------- active space
+  _driver:
+    abstract: true
+    kind: driver
+    group: drivers
+    import: forte2
+    requires: [mos]
+    provides: [system, mos, mo_space, energy]
+    inherit_requirements_from: ci_solver
+    slots:
+      ci_solver:
+        accepts: [CISolver, SelectedCISolver, RelCISolver, RelSelectedCISolver]
+        required: true
+        positional: true
+
+  CI:
+    extends: _driver
+    var: ci
+    summary: Solve the active-space problem once, in the current orbitals.
+    card: [ci_solver, final_orbitals]
+    options:
+      final_orbitals: {}
+      do_transition_dipole: {}
+      die_if_not_converged: { advanced: true }
+
+  MCOptimizer:
+    extends: _driver
+    var: mc
+    summary: Optimize orbitals and CI coefficients together (CASSCF, GASSCF).
+    provides: [system, mos, mo_space, energy, gradient]
+    card: [ci_solver, final_orbitals]
+    options:
+      maxiter: {}
+      e_tol: {}
+      g_tol: {}
+      final_orbitals: {}
+      do_transition_dipole: {}
+      freeze_inter_gas_rots: { advanced: true }
+      active_frozen_orbitals: { type: "list[int]", advanced: true }
+      micro_maxiter: { advanced: true }
+      max_rotation: { advanced: true }
+      die_if_not_converged: { advanced: true }
+
+  _solver:
+    abstract: true
+    kind: solver
+    group: solvers
+    import: forte2
+    var: ci_solver
+    card: [states, nroots, core_orbitals, active_orbitals]
+    options:
+      nroots:
+        type: py
+        placeholder: "1, or [1, 2] per state"
+        doc: Number of roots, as one integer or one integer per state.
+      weights:
+        type: py
+        placeholder: "[3, 1, 1, 1] or [[1.0], [3.0]]"
+        doc: State-averaging weights, as a flat list or one list per state.
+      core_orbitals:
+        type: py
+        placeholder: "4, or [0, 1, 2, 3]"
+        doc: Doubly occupied orbitals, as a count or a list of indices.
+      active_orbitals:
+        type: py
+        placeholder: "6, [4, 5, 6], or (3, 3) for GAS"
+        doc: Active orbitals, as a count, a list of indices, or one entry per GAS.
+      frozen_core_orbitals:
+        type: py
+        advanced: true
+        doc: Frozen core orbitals, as a count or a list of indices.
+      frozen_virtual_orbitals:
+        type: py
+        advanced: true
+        doc: Frozen virtual orbitals, as a count or a list of indices.
+      die_if_not_converged: { advanced: true }
+      do_test_rdms: { advanced: true }
+    hide: [log_level, mo_space_override]
+    rules:
+      - when: { parent.provides: { lacks: mo_space } }
+        require_any: [self.active_orbitals, self.core_orbitals, self.frozen_core_orbitals, self.frozen_virtual_orbitals]
+        field: active_orbitals
+        message: The upstream method doesn't define an active space. Set active_orbitals (and core_orbitals), or add AVAS upstream.
+
+  CISolver:
+    extends: _solver
+    summary: CI in a complete or generalized active space, in the CSF basis.
+    requires_attrs: { two_component: false }
+    slots:
+      states: { accepts: [State], required: true, many: true }
+      ci_params: { accepts: [CIParams], advanced: true }
+      davidson_liu_params: { accepts: [DavidsonLiuParams], advanced: true }
+
+  SelectedCISolver:
+    extends: _solver
+    summary: Heat-bath selected CI; a drop-in replacement for CISolver.
+    requires_attrs: { two_component: false }
+    slots:
+      states: { accepts: [State], required: true, many: true }
+      sci_params: { accepts: [SelectedCIParams] }
+      davidson_liu_params: { accepts: [DavidsonLiuParams], advanced: true }
+
+  RelCISolver:
+    extends: _solver
+    summary: Two-component CI for spin-orbit Hamiltonians.
+    requires_attrs: { two_component: true }
+    card: [nel, nroots, core_orbitals, active_orbitals]
+    slots:
+      states: { accepts: [RelState, State], many: true }
+      ci_params: { accepts: [CIParams], advanced: true }
+      davidson_liu_params: { accepts: [DavidsonLiuParams], advanced: true }
+    options:
+      nel:
+        type: int
+        doc: Number of electrons in the calculation. Use this or states, not both.
+    rules:
+      - require_one: [self.nel, self.states]
+        field: nel
+        message: Set nel or add a state, but not both.
+
+  RelSelectedCISolver:
+    extends: _solver
+    summary: Two-component heat-bath selected CI.
+    requires_attrs: { two_component: true }
+    card: [nel, nroots, core_orbitals, active_orbitals]
+    slots:
+      states: { accepts: [RelState, State], many: true }
+      sci_params: { accepts: [SelectedCIParams] }
+      davidson_liu_params: { accepts: [DavidsonLiuParams], advanced: true }
+    options:
+      nel:
+        type: int
+        doc: Number of electrons in the calculation. Use this or states, not both.
+    rules:
+      - require_one: [self.nel, self.states]
+        field: nel
+        message: Set nel or add a state, but not both.
+
+  # ---------------------------------------------------- dynamic correlation
+  _dsrg:
+    abstract: true
+    kind: method
+    group: correlation
+    import: forte2
+    var: dsrg
+    parents: [CI, MCOptimizer]
+    requires: [mo_space]
+    provides: [system, mos, mo_space, energy]
+    card: [flow_param, relax_reference]
+    options:
+      flow_param: {}
+      relax_reference: { type: enum, values: [false, once, twice, iterate] }
+      relax_maxiter: {}
+      relax_tol: { advanced: true }
+      frozen_core_orbitals:
+        type: py
+        doc: Orbitals to leave uncorrelated, as a count of the lowest orbitals or a list of indices.
+      frozen_virtual_orbitals:
+        type: py
+        advanced: true
+        doc: Virtual orbitals to leave uncorrelated, as a count of the highest orbitals or a list of indices.
+
+  DSRG_MRPT2:
+    extends: _dsrg
+    summary: Second-order multireference DSRG perturbation theory.
+    requires_attrs: { two_component: false }
+
+  RelDSRG_MRPT2:
+    extends: _dsrg
+    summary: Two-component DSRG-MRPT2 for spin-orbit Hamiltonians.
+    requires_attrs: { two_component: true }
+
+  # ------------------------------------------------- gradients and geometry
+  FDGradient:
+    kind: method
+    group: geometry
+    import: forte2
+    var: fd
+    summary: Nuclear gradient of any upstream method, by finite differences of its energy.
+    requires: [energy]
+    provides: [system, mos, energy, gradient]
+    requires_attrs: { model: false }
+    card: [step, npoints]
+    options:
+      step: {}
+      npoints: { type: enum, values: [2, 4, 6] }
+      root: { type: int }
+      project_orbitals: { advanced: true }
+      residual_tol: { advanced: true }
+    hide: [energy_accessor]
+
+  GeometryOptimizer:
+    kind: method
+    group: geometry
+    import: forte2
+    var: opt
+    summary: Optimize the geometry with L-BFGS, using the upstream method's gradient.
+    requires: [gradient]
+    provides: []
+    requires_attrs: { model: false }
+    card: [maxiter, g_tol]
+    options:
+      root: { type: int }
+      maxiter: {}
+      g_tol: {}
+      max_step: {}
+      project_orbitals: { advanced: true }
+    hide: [method_factory, lbfgs_kwargs]
+
+  # ------------------------------------------------------------- parameters
+  State:
+    kind: value
+    group: params
+    import: forte2
+    summary: A target electronic state; electron count, spin and GAS restrictions.
+    card: [nel, multiplicity, ms]
+    options:
+      nel: {}
+      system:
+        type: system_ref
+        example: true
+        unless: [nel]
+        doc: Take the electron count from the System's nuclear charge minus charge. Ignored when nel is set.
+      multiplicity: { example: 1 }
+      ms: { example: 0.0 }
+      charge: {}
+      gas_min: { type: "list[int]", advanced: true }
+      gas_max: { type: "list[int]", advanced: true }
+      symmetry: { advanced: true }
+      symmetry_label: { type: str, advanced: true }
+    rules:
+      - require_any: [self.nel, self.system]
+        field: nel
+        message: Set nel, or take the electron count from the System.
+
+  RelState:
+    extends: State
+    summary: A two-component target state; multiplicity and ms only seed the guess.
+    options:
+      multiplicity: {}
+      ms: {}
+
+  X2CParams:
+    kind: value
+    group: params
+    import: forte2
+    summary: Exact two-component relativistic Hamiltonian settings.
+    card: [x2c_type, x2c_model, snso_type]
+    options:
+      x2c_type: { type: enum, values: [sf, so], required: true, example: sf }
+      x2c_model: { type: enum, values: ["1e", sap] }
+      snso_type: {}
+    rules:
+      - when: { self.snso_type: { set: true } }
+        require: { self.x2c_type: so, self.x2c_model: "1e" }
+        field: snso_type
+        message: SNSO scaling needs x2c_type="so" and x2c_model="1e".
+
+  CIParams:
+    kind: value
+    group: params
+    import: forte2.base_classes
+    summary: CI sigma-builder settings.
+    card: [ci_algorithm]
+    options:
+      ci_algorithm: {}
+      ci_builder_memory: {}
+      energy_shift: { type: float }
+
+  DavidsonLiuParams:
+    kind: value
+    group: params
+    import: forte2.base_classes
+    summary: Davidson–Liu eigensolver settings.
+    card: [r_tol, e_tol]
+    options:
+      guess_per_root: {}
+      ndets_per_guess: {}
+      collapse_per_root: {}
+      basis_per_root: {}
+      maxiter: {}
+      e_tol: {}
+      r_tol: {}
+
+  SelectedCIParams:
+    kind: value
+    group: params
+    import: forte2.base_classes
+    summary: Heat-bath selected CI settings.
+    card: [var_threshold, pt2_threshold, energy_correction]
+    options:
+      var_threshold: {}
+      pt2_threshold: {}
+      energy_correction: {}
+      maxcycle: {}
+      e_tol: {}
+      selection_algorithm: {}
+      screening_criterion: {}
+      guess_occ_window: {}
+      guess_vir_window: {}
+      ci_algorithm: {}
+      do_spin_penalty: {}
+      num_batches_per_thread: { advanced: true }
+      frozen_creation: { advanced: true }
+      frozen_annihilation: { advanced: true }
+      energy_shift: { type: float, advanced: true }
+      pt2_regularizer: { advanced: true }
+      pt2_regularizer_strength: { advanced: true }
+    hide: [guess_dets, pinned_guess_dets]

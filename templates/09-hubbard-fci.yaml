@@ -1,0 +1,27 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 9
+title: Full CI on a Hubbard chain
+summary: Model Hamiltonians plug into the same chain. Here, an open 8-site Hubbard chain at half filling, solved exactly.
+tags: [model Hamiltonian, FCI]
+source: tests/scf/test_hubbard_model.py
+results:
+  - { label: "RHF energy", value: "−1.517541" }
+  - { label: "FCI energy", value: "−4.235807" }
+nodes:
+  - id: system
+    type: HubbardModel
+    options: { t: 1.0, U: 4.0, nsites: "8", pbc: false }
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: -8, guess_type: hcore }
+  - id: ci
+    type: CI
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { active_orbitals: "list(range(8))" }
+        slots:
+          states: { type: State, options: { nel: 8, multiplicity: 1, ms: 0.0 } }

@@ -1,0 +1,37 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 2
+title: CASSCF → DSRG-MRPT2 with reference relaxation
+summary: A (6,6) CASSCF on stretched N₂, then DSRG-MRPT2 relaxing the CAS reference until it converges.
+tags: [CASSCF, DSRG-MRPT2]
+source: tests/dsrg/test_dsrg_mrpt2.py
+results:
+  - { label: "CASSCF(6,6) energy", value: "−109.081149 Eh" }
+  - { label: "DSRG-MRPT2, fully relaxed", value: "−109.238954 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        N 0.0 0.0 0.0
+        N 0.0 0.0 2.0
+      basis_set: cc-pVDZ
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+      unit: bohr
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "4", active_orbitals: "6" }
+        slots:
+          states: { type: State, options: { nel: 14, multiplicity: 1, ms: 0.0 } }
+  - id: dsrg
+    type: DSRG_MRPT2
+    parent: mc
+    options: { flow_param: 0.5, relax_reference: iterate }

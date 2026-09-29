@@ -1,0 +1,41 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 4
+title: Selected CI as the CASSCF solver
+summary: Swap CISolver for heat-bath selected CI inside a two-state CASSCF on N₂.
+tags: [selected CI, CASSCF, state averaging]
+source: tests/mcopt/test_casscf_with_sci.py
+results:
+  - { label: "Root 0", value: "−109.079973 Eh" }
+  - { label: "Root 1", value: "−108.685847 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        N 0.0 0.0 0.0
+        N 0.0 0.0 1.1
+      basis_set: cc-pvdz
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    slots:
+      ci_solver:
+        type: SelectedCISolver
+        options:
+          nroots: "2"
+          core_orbitals: "4"
+          active_orbitals: "6"
+        slots:
+          states: { type: State, options: { nel: 14, multiplicity: 1, ms: 0.0 } }
+          sci_params:
+            type: SelectedCIParams
+            options: { var_threshold: 1.0e-8, pt2_threshold: 0.0, num_batches_per_thread: 16 }
+          davidson_liu_params:
+            type: DavidsonLiuParams
+            options: { e_tol: 1.0e-10, r_tol: 1.0e-5, ndets_per_guess: 20 }

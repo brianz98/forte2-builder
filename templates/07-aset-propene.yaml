@@ -1,0 +1,58 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 7
+title: ASET(0) embedding → DSRG-MRPT2
+summary: Treat propene's vinyl group as the fragment and the methyl group as the environment, then correlate the fragment with DSRG-MRPT2.
+tags: [embedding, ASET, CASSCF, DSRG-MRPT2, Cholesky]
+source: tests/orbitals/test_aset.py
+results:
+  - { label: "CASSCF(2,2) energy", value: "−115.698779 Eh" }
+  - { label: "Embedded DSRG-MRPT2", value: "−115.778915 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        C       -2.2314881720      2.3523969887      0.1565319638
+        C       -1.1287322054      1.6651786288     -0.1651010551
+        H       -3.2159664855      1.9109197306      0.0351701750
+        H       -2.1807424354      3.3645292222      0.5457999612
+        H       -1.2085033449      0.7043108616     -0.5330598833
+        C        0.2601218384      2.1970946692     -0.0290628762
+        H        0.7545456004      2.2023392001     -1.0052240245
+        H        0.8387453665      1.5599644558      0.6466877402
+        H        0.2749376338      3.2174213526      0.3670138598
+      basis_set: sto-3g
+      cholesky_tei: true
+      cholesky_tol: 1.0e-10
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    options: { e_tol: 1.0e-10, g_tol: 1.0e-10 }
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "11", active_orbitals: "2" }
+        slots:
+          states: { type: State, options: { nel: 24, multiplicity: 1, ms: 0.0 } }
+  - id: aset
+    type: ASET
+    parent: mc
+    options: { fragment: ["C1-2", "H1-3"], cutoff_method: threshold, cutoff: 0.1 }
+  - id: ci
+    type: CI
+    parent: aset
+    options: { final_orbitals: semicanonical }
+    slots:
+      ci_solver:
+        type: CISolver
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }
+  - id: dsrg
+    type: DSRG_MRPT2
+    parent: ci
+    options: { flow_param: 0.5 }

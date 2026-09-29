@@ -1,0 +1,38 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 8
+title: CASSCF geometry optimization
+summary: Optimize the H₂ bond length with analytic CASSCF gradients. Insert FDGradient before the optimizer to use finite differences instead.
+tags: [geometry optimization, analytic gradients, CASSCF]
+source: tests/optimize/test_geometry_optimizer.py
+results:
+  - { label: "Optimized bond length", value: "1.388629 bohr" }
+  - { label: "Energy at minimum", value: "−1.137333 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0 0 0
+        H 0 0 1.7
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-JKFIT
+      unit: bohr
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12, d_tol: 1.0e-10 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    options: { e_tol: 1.0e-12, g_tol: 1.0e-9 }
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { active_orbitals: "[0, 1]" }
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }
+  - id: opt
+    type: GeometryOptimizer
+    parent: mc
+    options: { maxiter: 25, g_tol: 1.0e-7, max_step: 0.5 }

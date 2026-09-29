@@ -1,0 +1,53 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 5
+title: Spin-orbit splitting from spin-free CASSCF
+summary: Optimize orbitals with scalar X2C, upcast them to spinors, then diagonalize the spin-orbit X2C Hamiltonian in the active space.
+tags: [relativistic, X2C, SpinorUpcaster, two-component CI]
+source: tests/mcopt/test_casscf_so.py
+results:
+  - { label: "F ²P₃/₂–²P₁/₂ splitting", value: "401.04 cm⁻¹" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: F 0 0 0
+      basis_set: decon-cc-pVTZ
+      auxiliary_basis_set: cc-pVQZ-JKFIT
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: sf, x2c_model: "1e" } }
+  - id: rohf
+    type: ROHF
+    parent: system
+    options: { charge: 0, ms: 0.5 }
+  - id: avas
+    type: AVAS
+    parent: rohf
+    options:
+      subspace: ["F(2s)", "F(2p)"]
+      selection_method: separate
+      num_active_docc: 3
+      num_active_uocc: 0
+  - id: mc
+    type: MCOptimizer
+    parent: avas
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { nroots: "3" }
+        slots:
+          states: { type: State, options: { nel: 9, multiplicity: 2, ms: 0.5 } }
+  - id: upcaster
+    type: SpinorUpcaster
+    parent: mc
+    slots:
+      x2c_override:
+        type: X2CParams
+        options: { x2c_type: so, x2c_model: "1e", snso_type: row-dependent }
+  - id: ci
+    type: CI
+    parent: upcaster
+    slots:
+      ci_solver:
+        type: RelCISolver
+        options: { nel: 9, nroots: "6", core_orbitals: "2", active_orbitals: "8" }

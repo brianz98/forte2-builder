@@ -1,0 +1,256 @@
+import type { Catalog, NodeDef, OptionDef } from "../catalog/types";
+import type { GraphDoc, GraphNode } from "../graph/types";
+import { chainOrder, rootSystemOf } from "../graph/ops";
+import { hasValue } from "../rules/analyze";
+
+const WIDTH = 88;
+
+type Expr =
+  | { kind: "raw"; text: string }
+  | { kind: "call"; callee: string; args: Arg[] }
+  | { kind: "list"; items: Expr[] };
+
+interface Arg {
+  name?: string;
+  value: Expr;
+}
+
+const PY_KEYWORDS = new Set(
+  "False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield".split(
+    " ",
+  ),
+);
+
+export function pyString(s: string): string {
+  return JSON.stringify(s);
+}
+
+export function pyFloat(v: number): string {
+  if (Number.isInteger(v)) return `${v}.0`;
+  return String(v);
+}
+
+export function pyValue(v: unknown, opt: OptionDef): string {
+  const scalar = (x: unknown): string => {
+    if (x === null || x === undefined) return "None";
+    if (typeof x === "boolean") return x ? "True" : "False";
+    if (typeof x === "number") return opt.type === "float" ? pyFloat(x) : String(x);
+    if (typeof x === "string") return pyString(x);
+    if (Array.isArray(x)) return `[${x.map(scalar).join(", ")}]`;
+    return pyString(String(x));
+  };
+  if (opt.type === "py") return String(v);
+  return scalar(v);
+}
+
+function isDefault(v: unknown, opt: OptionDef): boolean {
+  if (!("default" in opt)) return false;
+  return JSON.stringify(v) === JSON.stringify(opt.default);
+}
+
+function snake(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .toLowerCase();
+}
+
+function isIdentifier(s: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(s) && !PY_KEYWORDS.has(s);
+}
+
+function render(expr: Expr, col: number, indent: number, suffix = 0): string {
+  if (expr.kind === "raw") return expr.text;
+  const open = expr.kind === "call" ? `${expr.callee}(` : "[";
+  const close = expr.kind === "call" ? ")" : "]";
+  const parts: { prefix: string; value: Expr }[] =
+    expr.kind === "call"
+      ? expr.args.map((a) => ({ prefix: a.name ? `${a.name}=` : "", value: a.value }))
+      : expr.items.map((value) => ({ prefix: "", value }));
+  // Follow Black: the whole call on one line; else the arguments on one
+  // indented line; else one argument per line with a trailing comma.
+  const flat = parts.map((p) => p.prefix + render(p.value, 0, indent)).join(", ");
+  const oneLine = `${open}${flat}${close}`;
+  if (!oneLine.includes("\n") && col + oneLine.length + suffix <= WIDTH) return oneLine;
+  if (parts.length === 0) return oneLine;
+  const pad = " ".repeat(indent + 4);
+  if (!flat.includes("\n") && indent + 4 + flat.length <= WIDTH) {
+    return `${open}\n${pad}${flat}\n${" ".repeat(indent)}${close}`;
+  }
+  const lines = parts.map(
+    (p) => `${pad}${p.prefix}${render(p.value, indent + 4 + p.prefix.length, indent + 4, 1)},`,
+  );
+  return `${open}\n${lines.join("\n")}\n${" ".repeat(indent)}${close}`;
+}
+
+function renderImports(byModule: Map<string, Set<string>>): string[] {
+  const lines: string[] = [];
+  for (const module of [...byModule.keys()].sort()) {
+    const names = [...byModule.get(module)!].sort();
+    const one = `from ${module} import ${names.join(", ")}`;
+    if (one.length <= WIDTH) lines.push(one);
+    else lines.push(`from ${module} import (\n${names.map((n) => `    ${n},`).join("\n")}\n)`);
+  }
+  return lines;
+}
+
+export interface GenerateOptions {
+  header?: string;
+}
+
+export function generatePython(
+  doc: GraphDoc,
+  catalog: Catalog,
+  options: GenerateOptions = {},
+): string {
+  const defOf = (n: GraphNode): NodeDef | undefined => catalog.nodes[n.type];
+
+  // Emit the nodes that reach a System through their parents.
+  const emitted: string[] = [];
+  const skipped: GraphNode[] = [];
+  const ok = new Set<string>();
+  for (const id of chainOrder(doc)) {
+    const node = doc.nodes[id];
+    const def = defOf(node);
+    const chainKind = def && (def.kind === "system" || def.kind === "method" || def.kind === "driver");
+    const reachable =
+      chainKind && (def.kind === "system" || (node.parent !== undefined && ok.has(node.parent)));
+    if (reachable) {
+      ok.add(id);
+      emitted.push(id);
+    } else {
+      skipped.push(node);
+    }
+  }
+
+  const used = new Set<string>();
+  const imports = new Map<string, Set<string>>();
+  const importName = (def: NodeDef) => {
+    if (!imports.has(def.import)) imports.set(def.import, new Set());
+    imports.get(def.import)!.add(def.name);
+    used.add(def.name);
+  };
+  const vars = new Map<string, string>();
+  const claim = (base: string) => {
+    let name = base;
+    for (let i = 2; used.has(name) || PY_KEYWORDS.has(name); i++) name = `${base}_${i}`;
+    used.add(name);
+    return name;
+  };
+  const varFor = (node: GraphNode): string => {
+    if (!vars.has(node.id)) {
+      const def = defOf(node)!;
+      const base = isIdentifier(node.id) ? node.id : def.var ?? snake(def.name);
+      vars.set(node.id, claim(base));
+    }
+    return vars.get(node.id)!;
+  };
+
+  // Reserve class names before choosing variable names.
+  const collect = (id: string) => {
+    const n = doc.nodes[id];
+    const def = defOf(n);
+    if (!def) return;
+    importName(def);
+    for (const ids of Object.values(n.slots)) ids.forEach(collect);
+  };
+  emitted.forEach(collect);
+
+  const body: string[] = [];
+  const hoisted: string[] = [];
+
+  const exprFor = (node: GraphNode, pre: string[]): Expr => {
+    const def = defOf(node)!;
+    const args: Arg[] = [];
+    const slotExpr = (slot: string): Expr | undefined => {
+      const ids = node.slots[slot] ?? [];
+      const items = ids.map((cid) => {
+        const child = doc.nodes[cid];
+        const cdef = defOf(child);
+        if (!cdef) return { kind: "raw", text: "None" } as Expr;
+        if (cdef.kind === "solver") {
+          const name = varFor(child);
+          pre.push(assign(name, exprFor(child, pre)));
+          return { kind: "raw", text: name } as Expr;
+        }
+        return exprFor(child, pre);
+      });
+      if (items.length === 0) return undefined;
+      if (items.length === 1) return items[0];
+      return { kind: "list", items };
+    };
+
+    for (const [slot, sdef] of Object.entries(def.slots)) {
+      if (!sdef.positional) continue;
+      const e = slotExpr(slot);
+      if (e) args.push({ value: e });
+    }
+    for (const [name, opt] of Object.entries(def.options)) {
+      const v = node.options[name];
+      if (!hasValue(v) || isDefault(v, opt)) continue;
+      if (opt.unless?.some((o) => hasValue(node.options[o]))) continue;
+      if (opt.type === "system_ref") {
+        if (v !== true) continue;
+        const sys = rootSystemOf(doc, catalog, node.id);
+        const sysVar = sys ? vars.get(sys.id) : undefined;
+        if (sysVar) args.push({ name, value: { kind: "raw", text: sysVar } });
+        continue;
+      }
+      if (opt.type === "text") {
+        const hv = claim(name);
+        hoisted.push(`${hv} = """\n${String(v).trim().replace(/\\/g, "\\\\")}\n"""`);
+        args.push({ name, value: { kind: "raw", text: hv } });
+        continue;
+      }
+      args.push({ name, value: { kind: "raw", text: pyValue(v, opt) } });
+    }
+    for (const [slot, sdef] of Object.entries(def.slots)) {
+      if (sdef.positional) continue;
+      const e = slotExpr(slot);
+      if (e) args.push({ name: slot, value: e });
+    }
+    return { kind: "call", callee: def.name, args };
+  };
+
+  const assign = (name: string, e: Expr, call?: string) => {
+    const suffix = call ? `(${call})` : "";
+    return `${name} = ${render(e, name.length + 3, 0, suffix.length)}${suffix}`;
+  };
+
+  // Name every emitted node up front so later references resolve.
+  emitted.forEach((id) => varFor(doc.nodes[id]));
+  for (const id of emitted) {
+    const node = doc.nodes[id];
+    const pre: string[] = [];
+    const e = exprFor(node, pre);
+    const parentVar = node.parent ? vars.get(node.parent) : undefined;
+    const stmt = assign(vars.get(id)!, e, parentVar);
+    const def = defOf(node)!;
+    if (def.kind === "system") {
+      body.push(...hoisted.splice(0), ...pre, stmt, "");
+    } else {
+      body.push(...hoisted.splice(0), ...pre, stmt);
+    }
+  }
+
+  const hasChild = new Set(emitted.map((id) => doc.nodes[id].parent).filter(Boolean));
+  const leaves = emitted.filter(
+    (id) => !hasChild.has(id) && defOf(doc.nodes[id])!.kind !== "system",
+  );
+
+  const out: string[] = [];
+  if (options.header) out.push(...options.header.split("\n").map((l) => `# ${l}`.trimEnd()));
+  if (imports.size) out.push(...renderImports(imports), "");
+  while (body.length && body[body.length - 1] === "") body.pop();
+  out.push(...body);
+  if (leaves.length) out.push("", ...leaves.map((id) => `${vars.get(id)}.run()`));
+  if (skipped.length) {
+    out.push(
+      "",
+      `# Not generated, because they don't connect to a System: ${skipped
+        .map((n) => `${n.type} (${n.id})`)
+        .join(", ")}.`,
+    );
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n") + "\n";
+}

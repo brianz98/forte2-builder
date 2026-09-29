@@ -1,0 +1,44 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 1
+title: π-space CASSCF with AVAS
+summary: AVAS picks the three carbon 2p orbitals perpendicular to the ring, then CASSCF optimizes them.
+tags: [AVAS, CASSCF]
+source: tests/mcopt/test_casscf_avas_cyclopropene.py
+results:
+  - { label: "RHF energy", value: "−114.400092 Eh" }
+  - { label: "CASSCF(2,3) energy", value: "−114.440832 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H   0.912650   0.000000   1.457504
+        H  -0.912650   0.000000   1.457504
+        H   0.000000  -1.585659  -1.038624
+        H   0.000000   1.585659  -1.038624
+        C   0.000000   0.000000   0.859492
+        C   0.000000  -0.651229  -0.499559
+        C   0.000000   0.651229  -0.499559
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-6 }
+  - id: avas
+    type: AVAS
+    parent: rhf
+    options:
+      subspace: ["C(2p)"]
+      subspace_pi_planes: '[["C1-3"]]'
+      selection_method: total
+      num_active: 3
+  - id: mc
+    type: MCOptimizer
+    parent: avas
+    slots:
+      ci_solver:
+        type: CISolver
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }

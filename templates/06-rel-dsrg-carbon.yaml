@@ -1,0 +1,35 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+order: 6
+title: Two-component CASSCF → DSRG-MRPT2
+summary: Carbon atom ³P fine structure with spin-orbit X2C, a two-component SA-CASSCF over nine states, and relativistic DSRG-MRPT2.
+tags: [relativistic, X2C, GHF, two-component CASSCF, DSRG-MRPT2]
+source: tests/dsrg/test_rel_dsrg_mrpt2.py
+results:
+  - { label: "SA-CASSCF reference", value: "−37.718967 Eh" }
+  - { label: "2C-DSRG-MRPT2", value: "−37.822217 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: C 0 0 0
+      basis_set: decon-cc-pVTZ
+      auxiliary_basis_set: cc-pVQZ-JKFIT
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: so, x2c_model: "1e", snso_type: row-dependent } }
+  - id: ghf
+    type: GHF
+    parent: system
+    options: { charge: 0, die_if_not_converged: false }
+  - id: mc
+    type: MCOptimizer
+    parent: ghf
+    options: { e_tol: 1.0e-8, g_tol: 1.0e-6 }
+    slots:
+      ci_solver:
+        type: RelCISolver
+        options: { nel: 6, nroots: "9", core_orbitals: "2", active_orbitals: "8" }
+  - id: dsrg
+    type: RelDSRG_MRPT2
+    parent: mc
+    options: { flow_param: 0.24, relax_reference: once }

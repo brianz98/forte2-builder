@@ -1,0 +1,2646 @@
+{
+  "forte2_version": "2026.9.1",
+  "classes": {
+    "ASET": {
+      "module": "forte2.orbitals.aset",
+      "mro": [
+        "ASET",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "Zeroth-order Active Space Embedding Theory (ASET(0)) method for paritioning and projecting molecules.",
+      "options": [
+        {
+          "name": "fragment",
+          "type": "list",
+          "required": true,
+          "doc": "List of atomic symbols defining the fragment."
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": "Number or list of frozen core orbital indices.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": "Number or list of frozen virtual orbital indices.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "cutoff_method",
+          "type": "str",
+          "required": false,
+          "doc": "Method for choosing the embedding cutoff. Options include \"threshold\", \"num_of_orbitals\".",
+          "default": {
+            "value": "threshold"
+          }
+        },
+        {
+          "name": "cutoff",
+          "type": "float",
+          "required": false,
+          "doc": "Projector eigenvalue for simple threshold methods.",
+          "default": {
+            "value": 0.5
+          }
+        },
+        {
+          "name": "num_A_occ",
+          "type": "int",
+          "required": false,
+          "doc": "Number of occupied orbitals fixed to this value in fragment A when cutoff method is \"num_of_orbitals\".",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "num_A_vir",
+          "type": "int",
+          "required": false,
+          "doc": "Number of virtual orbitals fixed to this value in fragment A when cutoff method is \"num_of_orbitals\".",
+          "default": {
+            "value": 0
+          }
+        }
+      ]
+    },
+    "AVAS": {
+      "module": "forte2.orbitals.avas",
+      "mro": [
+        "AVAS",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "Atomic valence active space (AVAS) method for selecting active orbitals for multi-reference calculations.",
+      "options": [
+        {
+          "name": "subspace",
+          "type": "list",
+          "required": true,
+          "doc": "The subspace of orbitals to be considered for AVAS selection."
+        },
+        {
+          "name": "subspace_pi_planes",
+          "type": "list",
+          "required": false,
+          "doc": "A list of planes defined by atoms in the molecule, used to determine \u03c0 orbitals.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "selection_method",
+          "type": "str",
+          "required": false,
+          "doc": "The method for selecting active orbitals. Options are \"cumulative\", \"cutoff\", \"separate\", and \"total\".\n- \"cumulative\": Selects orbitals based on cumulative eigenvalues of the overlap matrix. Must define `sigma`.\n- \"cutoff\": Selects orbitals based on a cutoff value for eigenvalues of the overlap matrix. Must define `cutoff`.\n- \"separate\": Selects occupied and virtual orbitals separately. Must define `num_active_docc` and `num_active_uocc`.\n- \"total\": Selects a total number of active orbitals. Must define `num_active`.",
+          "default": {
+            "value": "cumulative"
+          }
+        },
+        {
+          "name": "diagonalize",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to diagonalize the occupied and virtual space overlap matrices.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "sigma",
+          "type": "float",
+          "required": false,
+          "doc": "Cumulative cutoff for the eigenvalues of the overlap matrix, controlling the size of the active space.",
+          "default": {
+            "value": 0.98
+          }
+        },
+        {
+          "name": "cutoff",
+          "type": "float",
+          "required": false,
+          "doc": "Cutoff for the eigenvalues of the overlap matrix; eigenvalues greater than this value are considered active.",
+          "default": {
+            "value": 1.0
+          }
+        },
+        {
+          "name": "evals_threshold",
+          "type": "float",
+          "required": false,
+          "doc": "Threshold below which an eigenvalue of the projected overlap is considered zero.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "num_active",
+          "type": "int",
+          "required": false,
+          "doc": "Total number of active orbitals. Again, this is on top of any singly occupied orbitals if an ROHF reference is used.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "num_active_docc",
+          "type": "int",
+          "required": false,
+          "doc": "Number of active doubly occupied orbitals. This is on top of any singly occupied orbitals if an ROHF reference is used.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "num_active_uocc",
+          "type": "int",
+          "required": false,
+          "doc": "Number of active unoccupied orbitals.",
+          "default": {
+            "value": 0
+          }
+        }
+      ]
+    },
+    "CI": {
+      "module": "forte2.ci.ci",
+      "mro": [
+        "CI",
+        "ActiveSpaceDriver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "Driver for a single CI calculation, i.e. one not run in a loop. This class is agnostic to the solver.",
+      "options": [
+        {
+          "name": "ci_solver",
+          "type": "forte2.base_classes.ci_base.CIBase",
+          "required": true,
+          "doc": "The solver to drive, e.g. ``CISolver``, ``RelCISolver``,\n``SelectedCISolver`` or ``RelSelectedCISolver``."
+        },
+        {
+          "name": "final_orbitals",
+          "type": "Literal['original', 'semicanonical', 'natural']",
+          "required": false,
+          "doc": "Orbitals to leave behind: \"original\", \"semicanonical\", or \"natural\".",
+          "default": {
+            "value": "original"
+          }
+        },
+        {
+          "name": "do_transition_dipole",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to compute transition dipoles and oscillator strengths.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether a solver that fails to converge raises instead of warning. Set on\nthe driver rather than the solver: a one-shot calculation has no later\niteration to recover from.",
+          "default": {
+            "value": true
+          }
+        }
+      ]
+    },
+    "CIParams": {
+      "module": "forte2.base_classes.params",
+      "mro": [
+        "CIParams",
+        "ParamsBase",
+        "ABC"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "Parameters for the CI solver.",
+      "options": [
+        {
+          "name": "ci_algorithm",
+          "type": "Literal['hz', 'harrison-zarrabian', 'kh', 'knowles-handy', 'exact', 'sparse']",
+          "required": false,
+          "doc": "The algorithm used for the CI sigma builder.\nNon-relativistic options are:\n    - \"hz\" / \"Harrison-Zarrabian\"\n    - \"kh\" / \"Knowles-Handy\"\n    - \"exact\": Exact diagonalization\nTwo-component (relativistic) options are:\n    - \"hz\" / \"Harrison-Zarrabian\"\n    - \"exact\": Exact diagonalization\n    - \"sparse\": Sigma builder using sparse representation of the Hamiltonian and states.\n        Recommended for debug use only.",
+          "default": {
+            "value": "hz"
+          }
+        },
+        {
+          "name": "ci_builder_memory",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum memory (in MB) to use for the CI sigma builder. This is used only if ci_algorithm is \"hz\" or \"kh\".",
+          "default": {
+            "value": 1024
+          }
+        },
+        {
+          "name": "energy_shift",
+          "type": "float",
+          "required": false,
+          "doc": "An energy shift, used to find roots around a specific energy. If None, no shift is applied.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "CISolver": {
+      "module": "forte2.ci.ci",
+      "mro": [
+        "CISolver",
+        "CIBase",
+        "ActiveSpaceSolver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A general configuration interaction (CI) solver class. This solver is can be called iteratively, e.g., in a MCSCF loop or a DSRG reference relaxation loop.",
+      "options": [
+        {
+          "name": "states",
+          "type": "forte2.state.state.State | list[forte2.state.state.State]",
+          "required": true,
+          "doc": null
+        },
+        {
+          "name": "nroots",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "weights",
+          "type": "list[float] | list[list[float]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "mo_space_override",
+          "type": "forte2.state.mo_space.MOSpace",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "active_orbitals",
+          "type": "list[int] | list[list[int]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "log_level",
+          "type": "int",
+          "required": false,
+          "doc": "The logging level for the CI solver. Defaults to ``logger.VERBOSITY_DEBUG``.",
+          "default": {
+            "value": 5
+          }
+        },
+        {
+          "name": "ci_params",
+          "type": "forte2.base_classes.params.CIParams",
+          "required": false,
+          "doc": "Parameters for the CI solver. If not provided, default parameters are used.",
+          "default": {
+            "repr": "CIParams(ci_algorithm='hz', ci_builder_memory=1024, energy_shift=None)"
+          }
+        },
+        {
+          "name": "davidson_liu_params",
+          "type": "forte2.base_classes.params.DavidsonLiuParams",
+          "required": false,
+          "doc": "Parameters for the Davidson-Liu eigensolver. If not provided, default parameters are used.",
+          "default": {
+            "repr": "DavidsonLiuParams(guess_per_root=2, ndets_per_guess=10, collapse_per_root=2, basis_per_root=4, maxiter=100, e_tol=1e-12, r_tol=1e-06)"
+          }
+        },
+        {
+          "name": "do_test_rdms",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, compute and test the reduced density matrices (RDMs) after the CI calculation.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "CUHF": {
+      "module": "forte2.scf.cuhf",
+      "mro": [
+        "CUHF",
+        "SCFBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A class that runs constrained unrestricted Hartree-Fock calculations. Equivalent to ROHF but uses UHF machinery. See J. Chem. Phys. 133, 141102 (2010) (10.1063/1.3503173)",
+      "options": [
+        {
+          "name": "charge",
+          "type": "int",
+          "required": true,
+          "doc": "Charge of the system."
+        },
+        {
+          "name": "do_diis",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to perform DIIS acceleration.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "diis_start",
+          "type": "int",
+          "required": false,
+          "doc": "Which iteration to start collecting DIIS error vectors.",
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "diis_nvec",
+          "type": "int",
+          "required": false,
+          "doc": "How many DIIS error vectors to keep.",
+          "default": {
+            "value": 8
+          }
+        },
+        {
+          "name": "diis_min",
+          "type": "int",
+          "required": false,
+          "doc": "Minimum number of DIIS vectors to perform extrapolation.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-09
+          }
+        },
+        {
+          "name": "d_tol",
+          "type": "float",
+          "required": false,
+          "doc": "RMS density change convergence tolerance.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum iteration for SCF.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "guess_type",
+          "type": "str",
+          "required": false,
+          "doc": "Initial guess type for the SCF calculation. Can be \"minao\" (SAP) or \"hcore\".",
+          "default": {
+            "value": "minao"
+          }
+        },
+        {
+          "name": "level_shift",
+          "type": "float",
+          "required": false,
+          "doc": "Level shift for the SCF calculation. If None, no level shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "level_shift_thresh",
+          "type": "float",
+          "required": false,
+          "doc": "If energy change is below this threshold, level shift is turned off.",
+          "default": {
+            "value": 1e-05
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to raise an error if the SCF calculation does not converge.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "ms",
+          "type": "float",
+          "required": false,
+          "doc": "Spin projection. Must be a multiple of 0.5.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "guess_mix",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, will mix the HOMO and LUMO orbitals to try to break alpha-beta degeneracy if ms is 0.0.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "DSRG_MRPT2": {
+      "module": "forte2.dsrg.dsrg_mrpt2",
+      "mro": [
+        "DSRG_MRPT2",
+        "DSRGBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "Spin-adapted driven similarity renormalization group second-order multireference perturbation theory (DSRG-MRPT2).",
+      "options": [
+        {
+          "name": "flow_param",
+          "type": "float",
+          "required": false,
+          "doc": "The flow parameter (in atomic units) that controls the renormalization.",
+          "default": {
+            "value": 0.5
+          }
+        },
+        {
+          "name": "relax_reference",
+          "type": "int | str | bool",
+          "required": false,
+          "doc": "Relax the CI reference in response to dynamical correlation.\nIf an integer is given, it specifies the maximum number of relaxation iterations.\nIf a string is given, it must be one of 'once', 'twice', or 'iterate':\n    'once' : diagonalize the CI Hamiltonian once after computing the DSRG energy\n    'twice': after the first diagonalization, recompute the DSRG energy\n    'iterate': keep relaxing until convergence or reaching relax_maxiter.\nIf a boolean is given, True is equivalent to relax_maxiter and False means no relaxation.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "relax_maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum number of reference relaxation iterations.",
+          "default": {
+            "value": 10
+          }
+        },
+        {
+          "name": "relax_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The convergence tolerance for reference relaxation (in Hartree).",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "DavidsonLiuParams": {
+      "module": "forte2.base_classes.params",
+      "mro": [
+        "DavidsonLiuParams",
+        "ParamsBase",
+        "ABC"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "Parameters for the Davidson-Liu eigenvalue solver.",
+      "options": [
+        {
+          "name": "guess_per_root",
+          "type": "int",
+          "required": false,
+          "doc": "The number of guess vectors for each root.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "ndets_per_guess",
+          "type": "int",
+          "required": false,
+          "doc": "The number of determinants per guess vector.",
+          "default": {
+            "value": 10
+          }
+        },
+        {
+          "name": "collapse_per_root",
+          "type": "int",
+          "required": false,
+          "doc": "The number of determinants to collapse per root.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "basis_per_root",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum number of basis vectors per root.",
+          "default": {
+            "value": 4
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum number of iterations for the Davidson-Liu solver.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The energy convergence threshold for the solver.",
+          "default": {
+            "value": 1e-12
+          }
+        },
+        {
+          "name": "r_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The residual convergence threshold for the solver.",
+          "default": {
+            "value": 1e-06
+          }
+        }
+      ]
+    },
+    "FDGradient": {
+      "module": "forte2.gradients.fd_gradient",
+      "mro": [
+        "FDGradient",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "Nuclear gradient of a method, by central differences of its energy.",
+      "options": [
+        {
+          "name": "step",
+          "type": "float",
+          "required": false,
+          "doc": "Cartesian displacement in Bohr.",
+          "default": {
+            "value": 0.001
+          }
+        },
+        {
+          "name": "npoints",
+          "type": "int",
+          "required": false,
+          "doc": "Central-difference stencil size; one of 2, 4, or 6.",
+          "default": {
+            "value": 4
+          }
+        },
+        {
+          "name": "root",
+          "type": "int | None",
+          "required": false,
+          "doc": "Which root to differentiate, for upstream methods that report several\nenergies. Required when the upstream method has more than one root.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "project_orbitals",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to seed the SCF at each displacement with the reference-geometry\nSCF orbitals, transferred to the displaced geometry.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "residual_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Warn when the residual net force or net torque exceeds this value, in\nEh/Bohr.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "energy_accessor",
+          "type": "Optional[Callable]",
+          "required": false,
+          "doc": "Custom extractor for the energy to differentiate\nOverrides the default of reading ``method.E`` (indexed by `root` when it reports multiple energies).\nUse this when the energy to differentiate is not `method.E` itself.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "GHF": {
+      "module": "forte2.scf.ghf",
+      "mro": [
+        "GHF",
+        "SCFBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "Generalized Hartree-Fock (GHF) method. The GHF spinor basis is a direct product of the atomic basis and :math:`\\{|\\alpha\\rangle, |\\beta\\rangle\\}`:",
+      "options": [
+        {
+          "name": "charge",
+          "type": "int",
+          "required": true,
+          "doc": "Charge of the system."
+        },
+        {
+          "name": "do_diis",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to perform DIIS acceleration.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "diis_start",
+          "type": "int",
+          "required": false,
+          "doc": "Which iteration to start collecting DIIS error vectors.",
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "diis_nvec",
+          "type": "int",
+          "required": false,
+          "doc": "How many DIIS error vectors to keep.",
+          "default": {
+            "value": 8
+          }
+        },
+        {
+          "name": "diis_min",
+          "type": "int",
+          "required": false,
+          "doc": "Minimum number of DIIS vectors to perform extrapolation.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-09
+          }
+        },
+        {
+          "name": "d_tol",
+          "type": "float",
+          "required": false,
+          "doc": "RMS density change convergence tolerance.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum iteration for SCF.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "guess_type",
+          "type": "str",
+          "required": false,
+          "doc": "Initial guess type for the SCF calculation. Can be \"minao\" (SAP) or \"hcore\".",
+          "default": {
+            "value": "minao"
+          }
+        },
+        {
+          "name": "level_shift",
+          "type": "float",
+          "required": false,
+          "doc": "Level shift for the SCF calculation. If None, no level shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "level_shift_thresh",
+          "type": "float",
+          "required": false,
+          "doc": "If energy change is below this threshold, level shift is turned off.",
+          "default": {
+            "value": 1e-05
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to raise an error if the SCF calculation does not converge.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "ms_guess",
+          "type": "float",
+          "required": false,
+          "doc": "Target spin projection (Ms) used only to build the initial guess\noccupation (na_guess/nb_guess). Must be a multiple of 0.5 and\ncompatible with the electron count. If None, a default occupation is\nused. Also gates whether ``guess_mix`` is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "guess_mix",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, will mix the HOMO and LUMO orbitals to try to break alpha-beta degeneracy if nel is even.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "alpha_beta_mix",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, will mix the highest two spinorbitals to try to seed alpha-beta orbital gradients.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "break_complex_symmetry",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, will add a small complex perturbation to the initial density matrix. This will both break\nthe complex conjugation symmetry and Sz symmetry (allowing alpha-beta density matrix blocks to be nonzero)",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "j_adapt",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, the j-adapted spinor AO basis will be used instead of the spherical AO basis.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "GeometryOptimizer": {
+      "module": "forte2.optimize.geometry_optimizer",
+      "mro": [
+        "GeometryOptimizer",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "Cartesian geometry optimizer using L-BFGS and method analytic gradients.",
+      "options": [
+        {
+          "name": "method_factory",
+          "type": "Optional[Callable]",
+          "required": false,
+          "doc": "Callable taking a ``System`` and returning a method object that provides\n``run()``, ``E``, and ``gradient()``. This is retained as a valid alternative.\nThe preferred API call is ``GeometryOptimizer(...)(method).run()``.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "root",
+          "type": "int | None",
+          "required": false,
+          "doc": "Absolute electronic root to optimize.  When specified, the objective\nenergy is ``method.E_ci[root]`` and the gradient is obtained from\n``method.gradient(root=root)``.  When omitted, the optimizer uses\n``method.E`` and ``method.gradient()`` as before.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum L-BFGS iterations.",
+          "default": {
+            "value": 50
+          }
+        },
+        {
+          "name": "g_tol",
+          "type": "float",
+          "required": false,
+          "doc": "L-BFGS gradient convergence threshold.",
+          "default": {
+            "value": 0.0001
+          }
+        },
+        {
+          "name": "max_step",
+          "type": "float",
+          "required": false,
+          "doc": "Maximum line-search step length.",
+          "default": {
+            "value": 1.0
+          }
+        },
+        {
+          "name": "project_orbitals",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, seed the SCF at each new geometry with the SCF orbitals of the\nprevious one, which keeps the optimization on the same SCF solution.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "lbfgs_kwargs",
+          "type": "dict",
+          "required": false,
+          "doc": "Additional keyword arguments forwarded to ``LBFGS``.",
+          "default": {
+            "value": {}
+          }
+        }
+      ]
+    },
+    "HubbardModel": {
+      "module": "forte2.system.system",
+      "mro": [
+        "HubbardModel",
+        "ModelSystem"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "A Hubbard model system. For a 1D chain, the Hamiltonian is given by:",
+      "options": [
+        {
+          "name": "t",
+          "type": "float",
+          "required": true,
+          "doc": "Hopping parameter."
+        },
+        {
+          "name": "U",
+          "type": "float",
+          "required": true,
+          "doc": "On-site interaction strength."
+        },
+        {
+          "name": "nsites",
+          "type": "int | tuple[int, int]",
+          "required": true,
+          "doc": "Number of sites in the 1D chain, or a tuple for number of sites in the x and y directions."
+        },
+        {
+          "name": "pbc",
+          "type": "bool | tuple[bool, bool]",
+          "required": false,
+          "doc": "Whether to apply 1D periodic boundary conditions. If a bool is provided but a 2D system is specified, it will be applied in both directions.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "MCOptimizer": {
+      "module": "forte2.mcopt.mc_optimizer",
+      "mro": [
+        "MCOptimizer",
+        "MCOptimizerBase",
+        "ActiveSpaceDriver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "Two-step optimizer for multi-configurational wavefunctions.",
+      "options": [
+        {
+          "name": "ci_solver",
+          "type": "forte2.base_classes.ci_base.CIBase | forte2.base_classes.ci_base.RelCIBase",
+          "required": true,
+          "doc": "The CI solver to use. This should be an instance of a class that inherits from CIBase or RelCIBase."
+        },
+        {
+          "name": "active_frozen_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": "List of active orbital indices to be frozen in the MCSCF optimization.\nIf provided, all gradients involving these orbitals will be zeroed out.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "freeze_inter_gas_rots",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to freeze inter-GAS orbital rotations when multiple GASes are defined.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum number of macroiterations.",
+          "default": {
+            "value": 50
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-08
+          }
+        },
+        {
+          "name": "g_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Gradient convergence tolerance.",
+          "default": {
+            "value": 1e-07
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, raises an error if the optimization does not converge.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "micro_maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum number of microiterations for L-BFGS.",
+          "default": {
+            "value": 6
+          }
+        },
+        {
+          "name": "max_rotation",
+          "type": "float",
+          "required": false,
+          "doc": "Maximum orbital rotation size for L-BFGS.",
+          "default": {
+            "value": 0.2
+          }
+        },
+        {
+          "name": "do_transition_dipole",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to compute and report transition dipole moments at the end of the optimization.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "final_orbitals",
+          "type": "Literal['original', 'semicanonical', 'natural']",
+          "required": false,
+          "doc": "Specify the type of final orbitals. Allowed values are:\n\n- \"semicanonical\": The average Fock matrix is diagonal within each orbital subspace.\n- \"natural\": Same as semicanonical, but the active orbitals are natural orbitals\n  and diagonalize the spin- and state-averaged 1-RDM within the CAS\n  subspace or within each of the GAS subspaces.\n- \"original\": The orbitals are left in the original basis after the optimization.\n  This option is only for debugging purposes and should generally be avoided\n  as the active orbitals will not be uniquely defined and may not be suitable\n  for subsequent calculations.",
+          "default": {
+            "value": "semicanonical"
+          }
+        }
+      ]
+    },
+    "MOSpace": {
+      "module": "forte2.state.mo_space",
+      "mro": [
+        "MOSpace"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "A class to store the partitioning of the molecular orbital space.",
+      "options": [
+        {
+          "name": "nmo",
+          "type": "int",
+          "required": true,
+          "doc": "The total number of molecular orbitals."
+        },
+        {
+          "name": "active_orbitals",
+          "type": "list[int] | list[list[int]]",
+          "required": false,
+          "doc": "A list of integers or a list of lists of integers storing the orbital indices of the GASes.\nIf a single list of integers is provided, it is treated as the CAS (a single GAS).",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": "A list of integers storing the core orbital indices.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": "A list of integers storing the frozen core orbital indices.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": "A list of integers storing the frozen virtual orbital indices.",
+          "default": {
+            "value": []
+          }
+        }
+      ]
+    },
+    "ModelSystem": {
+      "module": "forte2.system.system",
+      "mro": [
+        "ModelSystem"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "A base class for model systems. One needs to specify the overlap, hcore, and eri tensors. The number of electrons needs be set by setting charge to -nel at runtime.",
+      "options": []
+    },
+    "RHF": {
+      "module": "forte2.scf.rhf",
+      "mro": [
+        "RHF",
+        "SCFBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "A class that runs restricted Hartree-Fock calculations.",
+      "options": [
+        {
+          "name": "charge",
+          "type": "int",
+          "required": true,
+          "doc": "Charge of the system."
+        },
+        {
+          "name": "do_diis",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to perform DIIS acceleration.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "diis_start",
+          "type": "int",
+          "required": false,
+          "doc": "Which iteration to start collecting DIIS error vectors.",
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "diis_nvec",
+          "type": "int",
+          "required": false,
+          "doc": "How many DIIS error vectors to keep.",
+          "default": {
+            "value": 8
+          }
+        },
+        {
+          "name": "diis_min",
+          "type": "int",
+          "required": false,
+          "doc": "Minimum number of DIIS vectors to perform extrapolation.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-09
+          }
+        },
+        {
+          "name": "d_tol",
+          "type": "float",
+          "required": false,
+          "doc": "RMS density change convergence tolerance.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum iteration for SCF.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "guess_type",
+          "type": "str",
+          "required": false,
+          "doc": "Initial guess type for the SCF calculation. Can be \"minao\" (SAP) or \"hcore\".",
+          "default": {
+            "value": "minao"
+          }
+        },
+        {
+          "name": "level_shift",
+          "type": "float",
+          "required": false,
+          "doc": "Level shift for the SCF calculation. If None, no level shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "level_shift_thresh",
+          "type": "float",
+          "required": false,
+          "doc": "If energy change is below this threshold, level shift is turned off.",
+          "default": {
+            "value": 1e-05
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to raise an error if the SCF calculation does not converge.",
+          "default": {
+            "value": true
+          }
+        }
+      ]
+    },
+    "ROHF": {
+      "module": "forte2.scf.rohf",
+      "mro": [
+        "ROHF",
+        "SCFBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A class that runs restricted open-shell Hartree-Fock calculations.",
+      "options": [
+        {
+          "name": "charge",
+          "type": "int",
+          "required": true,
+          "doc": "Charge of the system."
+        },
+        {
+          "name": "do_diis",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to perform DIIS acceleration.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "diis_start",
+          "type": "int",
+          "required": false,
+          "doc": "Which iteration to start collecting DIIS error vectors.",
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "diis_nvec",
+          "type": "int",
+          "required": false,
+          "doc": "How many DIIS error vectors to keep.",
+          "default": {
+            "value": 8
+          }
+        },
+        {
+          "name": "diis_min",
+          "type": "int",
+          "required": false,
+          "doc": "Minimum number of DIIS vectors to perform extrapolation.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-09
+          }
+        },
+        {
+          "name": "d_tol",
+          "type": "float",
+          "required": false,
+          "doc": "RMS density change convergence tolerance.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum iteration for SCF.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "guess_type",
+          "type": "str",
+          "required": false,
+          "doc": "Initial guess type for the SCF calculation. Can be \"minao\" (SAP) or \"hcore\".",
+          "default": {
+            "value": "minao"
+          }
+        },
+        {
+          "name": "level_shift",
+          "type": "float",
+          "required": false,
+          "doc": "Level shift for the SCF calculation. If None, no level shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "level_shift_thresh",
+          "type": "float",
+          "required": false,
+          "doc": "If energy change is below this threshold, level shift is turned off.",
+          "default": {
+            "value": 1e-05
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to raise an error if the SCF calculation does not converge.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "ms",
+          "type": "float",
+          "required": false,
+          "doc": "Spin projection. Must be a multiple of 0.5.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "RelCISolver": {
+      "module": "forte2.ci.rel_ci",
+      "mro": [
+        "RelCISolver",
+        "RelCIBase",
+        "RelActiveSpaceSolver",
+        "CIBase",
+        "ActiveSpaceSolver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A general two-component configuration interaction (2C-CI) solver class.",
+      "options": [
+        {
+          "name": "states",
+          "type": "forte2.state.state.State | list[forte2.state.state.State]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "nroots",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "weights",
+          "type": "list[float] | list[list[float]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "mo_space_override",
+          "type": "forte2.state.mo_space.MOSpace",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "active_orbitals",
+          "type": "list[int] | list[list[int]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "log_level",
+          "type": "int",
+          "required": false,
+          "doc": "The logging level for the CI solver. Defaults to ``logger.VERBOSITY_DEBUG``.",
+          "default": {
+            "value": 5
+          }
+        },
+        {
+          "name": "nel",
+          "type": "int",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "davidson_liu_params",
+          "type": "forte2.base_classes.params.DavidsonLiuParams",
+          "required": false,
+          "doc": "Parameters for the Davidson-Liu eigensolver. If not provided, default parameters are used.",
+          "default": {
+            "repr": "DavidsonLiuParams(guess_per_root=2, ndets_per_guess=10, collapse_per_root=2, basis_per_root=4, maxiter=100, e_tol=1e-12, r_tol=1e-06)"
+          }
+        },
+        {
+          "name": "ci_params",
+          "type": "forte2.base_classes.params.CIParams",
+          "required": false,
+          "doc": "Parameters for the CI solver. If not provided, default parameters are used.",
+          "default": {
+            "repr": "CIParams(ci_algorithm='hz', ci_builder_memory=1024, energy_shift=None)"
+          }
+        },
+        {
+          "name": "do_test_rdms",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, compute and test the reduced density matrices (RDMs) after the CI calculation.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "RelDSRG_MRPT2": {
+      "module": "forte2.dsrg.rel_dsrg_mrpt2",
+      "mro": [
+        "RelDSRG_MRPT2",
+        "DSRGBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "Two-component relativistic driven similarity renormalization group second-order multireference perturbation theory (2C-DSRG-MRPT2).",
+      "options": [
+        {
+          "name": "flow_param",
+          "type": "float",
+          "required": false,
+          "doc": "The flow parameter (in atomic units) that controls the renormalization.",
+          "default": {
+            "value": 0.5
+          }
+        },
+        {
+          "name": "relax_reference",
+          "type": "int | str | bool",
+          "required": false,
+          "doc": "Relax the CI reference in response to dynamical correlation.\nIf an integer is given, it specifies the maximum number of relaxation iterations.\nIf a string is given, it must be one of 'once', 'twice', or 'iterate':\n    'once' : diagonalize the CI Hamiltonian once after computing the DSRG energy\n    'twice': after the first diagonalization, recompute the DSRG energy\n    'iterate': keep relaxing until convergence or reaching relax_maxiter.\nIf a boolean is given, True is equivalent to relax_maxiter and False means no relaxation.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "relax_maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum number of reference relaxation iterations.",
+          "default": {
+            "value": 10
+          }
+        },
+        {
+          "name": "relax_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The convergence tolerance for reference relaxation (in Hartree).",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "RelSelectedCISolver": {
+      "module": "forte2.sci.rel_sci",
+      "mro": [
+        "RelSelectedCISolver",
+        "RelCIBase",
+        "RelActiveSpaceSolver",
+        "SelectedCISolver",
+        "CIBase",
+        "ActiveSpaceSolver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A two-component (relativistic) selected configuration interaction (2C selected CI) solver.",
+      "options": [
+        {
+          "name": "states",
+          "type": "forte2.state.state.State | list[forte2.state.state.State]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "nroots",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "weights",
+          "type": "list[float] | list[list[float]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "mo_space_override",
+          "type": "forte2.state.mo_space.MOSpace",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "active_orbitals",
+          "type": "list[int] | list[list[int]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "log_level",
+          "type": "int",
+          "required": false,
+          "doc": "The logging level for the CI solver. Defaults to ``logger.VERBOSITY_DEBUG``.",
+          "default": {
+            "value": 5
+          }
+        },
+        {
+          "name": "sci_params",
+          "type": "forte2.base_classes.params.SelectedCIParams | list[forte2.base_classes.params.SelectedCIParams]",
+          "required": false,
+          "doc": "Parameters specific to the selected CI algorithm. One entry per state, or a single\nset shared by all states.",
+          "default": {
+            "repr": "SelectedCIParams(maxcycle=15, e_tol=1e-08, var_threshold=0.0005, pt2_threshold=1e-08, selection_algorithm='hbci', guess_occ_window=2, guess_vir_window=2, ci_algorithm='iterative', num_batches_per_thread=4, do_spin_penalty=True, guess_dets=[], pinned_guess_dets=[], frozen_creation=[], frozen_annihilation=[], screening_criterion='hbci', energy_correction='pt2', energy_shift=None, pt2_regularizer='none', pt2_regularizer_strength=0.0)"
+          }
+        },
+        {
+          "name": "davidson_liu_params",
+          "type": "forte2.base_classes.params.DavidsonLiuParams | list[forte2.base_classes.params.DavidsonLiuParams]",
+          "required": false,
+          "doc": "Parameters for the Davidson-Liu iterative eigensolver.",
+          "default": {
+            "repr": "DavidsonLiuParams(guess_per_root=2, ndets_per_guess=10, collapse_per_root=2, basis_per_root=4, maxiter=100, e_tol=1e-12, r_tol=1e-06)"
+          }
+        },
+        {
+          "name": "do_test_rdms",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, compute and validate the RDMs against the CI energy after the calculation.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "nel",
+          "type": "int",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "RelState": {
+      "module": "forte2.state.state",
+      "mro": [
+        "RelState",
+        "State"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "A convenience class representing a relativistic electronic state. Multiplicity and ms are no longer required, but will be used for initial guesses if provided.",
+      "options": [
+        {
+          "name": "multiplicity",
+          "type": "int",
+          "required": false,
+          "doc": "Multiplicity of the state (2S+1).",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "ms",
+          "type": "float",
+          "required": false,
+          "doc": "Spin projection (Ms) of the state.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "nel",
+          "type": "int",
+          "required": false,
+          "doc": "Total number of electrons in the state. If not provided, it is calculated from the system and charge.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "system",
+          "type": "forte2.system.system.System",
+          "required": false,
+          "doc": "The system to which this state belongs. If not provided, `nel` must be specified.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "charge",
+          "type": "int",
+          "required": false,
+          "doc": "Charge of the state. Used to calculate the number of electrons if `system` is provided. Ignored if `nel` is provided.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "gas_min",
+          "type": "list[int]",
+          "required": false,
+          "doc": "Minimum number of electrons in each GAS.\nIf not provided, no occupation restrictions will be applied.\nIf the length of `gas_min` is smaller than the number of GASes, the restrictions\nwill be sequentially applied to GAS1, GAS2, until the end of `gas_min`,\nbeyond which no restrictions will be applied.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "gas_max",
+          "type": "list[int]",
+          "required": false,
+          "doc": "Maximum number of electrons in each GAS. Processed similarly to `gas_min`.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "symmetry",
+          "type": "int",
+          "required": false,
+          "doc": "Symmetry of the state.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "symmetry_label",
+          "type": "str",
+          "required": false,
+          "doc": "Label for the symmetry of the state.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "SelectedCIParams": {
+      "module": "forte2.base_classes.params",
+      "mro": [
+        "SelectedCIParams",
+        "ParamsBase",
+        "ABC"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "Parameters for the Selected CI solver.",
+      "options": [
+        {
+          "name": "maxcycle",
+          "type": "int",
+          "required": false,
+          "doc": "The maximum number of selection cycles.",
+          "default": {
+            "value": 15
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The energy convergence threshold for selected CI macroiterations.",
+          "default": {
+            "value": 1e-08
+          }
+        },
+        {
+          "name": "var_threshold",
+          "type": "float",
+          "required": false,
+          "doc": "The threshold for including determinants in the variational space based on their contribution to the wavefunction.",
+          "default": {
+            "value": 0.0005
+          }
+        },
+        {
+          "name": "pt2_threshold",
+          "type": "float",
+          "required": false,
+          "doc": "The threshold for including determinants in the perturbative correction based on their second-order energy contribution.",
+          "default": {
+            "value": 1e-08
+          }
+        },
+        {
+          "name": "selection_algorithm",
+          "type": "Literal['hbci', 'hbci_ref']",
+          "required": false,
+          "doc": "The algorithm used for selecting determinants. Options are \"hbci\" and \"hbci_ref\".",
+          "default": {
+            "value": "hbci"
+          }
+        },
+        {
+          "name": "guess_occ_window",
+          "type": "int",
+          "required": false,
+          "doc": "The number of occupied orbitals to consider when generating guess determinants.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "guess_vir_window",
+          "type": "int",
+          "required": false,
+          "doc": "The number of virtual orbitals to consider when generating guess determinants.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "ci_algorithm",
+          "type": "Literal['iterative', 'exact']",
+          "required": false,
+          "doc": "The algorithm used for the CI diagonalization. Options are \"exact\" and \"iterative\".\n\"iterative\" runs a Davidson-Liu solve whose sigma build is the C++\n`SelectedCIHelper`/`RelSelectedCIHelper`; \"exact\" builds and diagonalizes the\ndense Hamiltonian via `SlaterRules`.",
+          "default": {
+            "value": "iterative"
+          }
+        },
+        {
+          "name": "num_batches_per_thread",
+          "type": "int",
+          "required": false,
+          "doc": "The number of batches of determinants to process per thread during selection and diagonalization.\nThe number of threads is determined automatically from the environment (affinity mask,\n`OMP_NUM_THREADS`, `OMP_THREAD_LIMIT`, `SLURM_CPUS_PER_TASK`); set `FORTE_NUM_THREADS_OVERRIDE`\nto override it.",
+          "default": {
+            "value": 4
+          }
+        },
+        {
+          "name": "do_spin_penalty",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to apply a spin penalty to the Hamiltonian to enforce correct spin symmetry.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "guess_dets",
+          "type": "list[forte2.lib.det.Determinant]",
+          "required": false,
+          "doc": "A list of determinants to use as the initial guess for the CI wavefunction.\nNote that this set will be further filtered by `DavidsonLiuParams.ndets_per_guess` using the determinantal energies,\nbefore finally being enlarged to a spin-complete set.\nTherefore, it is not recommended to provide energetically disjoint guess determinants, as the higher energy ones will likely be filtered out.\nUse `pinned_guess_dets` to ensure certain determinants are included in the guess without relying on their energies.\nIf not provided, the guess determinants will be generated based on the guess_occ_window and guess_vir_window parameters.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "pinned_guess_dets",
+          "type": "list[forte2.lib.det.Determinant]",
+          "required": false,
+          "doc": "A list of determinants that are pinned to the initial guess, ensuring they are included in the variational space.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "frozen_creation",
+          "type": "list[int]",
+          "required": false,
+          "doc": "A list of orbital indices for which creation operators are frozen (i.e., not allowed to be occupied in the selected determinants).\nThis is used to enforce certain symmetries or to exclude certain orbitals from the selection process.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "frozen_annihilation",
+          "type": "list[int]",
+          "required": false,
+          "doc": "A list of orbital indices for which annihilation operators are frozen (i.e., not allowed to be unoccupied in the selected determinants).\nThis is used to enforce certain symmetries or to exclude certain orbitals from the selection process.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "screening_criterion",
+          "type": "Literal['hbci', 'ehbci']",
+          "required": false,
+          "doc": "The criterion used to screen determinants during selection. Options are \"hbci\" and \"ehbci\".",
+          "default": {
+            "value": "hbci"
+          }
+        },
+        {
+          "name": "energy_correction",
+          "type": "Literal['variational', 'pt2']",
+          "required": false,
+          "doc": "The method used to compute the energy correction from the determinants that are not included in the variational space.\nOptions are \"pt2\" and \"variational\".",
+          "default": {
+            "value": "pt2"
+          }
+        },
+        {
+          "name": "energy_shift",
+          "type": "float",
+          "required": false,
+          "doc": "An energy shift applied during selection to target specific roots. If None, no shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "pt2_regularizer",
+          "type": "Literal['none', 'shift', 'dsrg']",
+          "required": false,
+          "doc": "The method used to regularize the PT2 energy correction.\nOptions are:\n    - \"none\": No regularization.\n    - \"shift\": Apply a small shift to the denominators in the PT2 expression to avoid divergences:\n        1 / denom -> 1 / (denom + pt2_regularizer_strength)\n        Ept2 -> 0 as pt2_regularizer_strength -> inf\n    - \"dsrg\": Use a DSRG-inspired regularization of the PT2 correction:\n        1 / denom -> (1 / denom) * (1 - exp(-denom^2 * pt2_regularizer_strength))\n        Ept2 -> 0 as pt2_regularizer_strength -> 0, Ept2 -> unregularized PT2 as pt2_regularizer_strength -> inf",
+          "default": {
+            "value": "none"
+          }
+        },
+        {
+          "name": "pt2_regularizer_strength",
+          "type": "float",
+          "required": false,
+          "doc": "The strength of the PT2 regularization.\nNote that the interpretation of this parameter depends on the choice of pt2_regularizer (see above).",
+          "default": {
+            "value": 0.0
+          }
+        }
+      ]
+    },
+    "SelectedCISolver": {
+      "module": "forte2.sci.sci",
+      "mro": [
+        "SelectedCISolver",
+        "CIBase",
+        "ActiveSpaceSolver",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A selected configuration interaction (sCI) solver class. This solver is can be called iteratively, e.g., in a MCSCF loop or a DSRG reference relaxation loop.",
+      "options": [
+        {
+          "name": "states",
+          "type": "forte2.state.state.State | list[forte2.state.state.State]",
+          "required": true,
+          "doc": null
+        },
+        {
+          "name": "nroots",
+          "type": "int | list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "weights",
+          "type": "list[float] | list[list[float]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "mo_space_override",
+          "type": "forte2.state.mo_space.MOSpace",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "core_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "active_orbitals",
+          "type": "list[int] | list[list[int]]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "frozen_virtual_orbitals",
+          "type": "list[int]",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "log_level",
+          "type": "int",
+          "required": false,
+          "doc": "The logging level for the CI solver. Defaults to ``logger.VERBOSITY_DEBUG``.",
+          "default": {
+            "value": 5
+          }
+        },
+        {
+          "name": "sci_params",
+          "type": "forte2.base_classes.params.SelectedCIParams | list[forte2.base_classes.params.SelectedCIParams]",
+          "required": false,
+          "doc": "Parameters specific to the selected CI algorithm.\nIf a list is provided, it should have one entry per state.\nIf only a single SelectedCIParams is provided, it will be used for all states.",
+          "default": {
+            "repr": "SelectedCIParams(maxcycle=15, e_tol=1e-08, var_threshold=0.0005, pt2_threshold=1e-08, selection_algorithm='hbci', guess_occ_window=2, guess_vir_window=2, ci_algorithm='iterative', num_batches_per_thread=4, do_spin_penalty=True, guess_dets=[], pinned_guess_dets=[], frozen_creation=[], frozen_annihilation=[], screening_criterion='hbci', energy_correction='pt2', energy_shift=None, pt2_regularizer='none', pt2_regularizer_strength=0.0)"
+          }
+        },
+        {
+          "name": "davidson_liu_params",
+          "type": "forte2.base_classes.params.DavidsonLiuParams | list[forte2.base_classes.params.DavidsonLiuParams]",
+          "required": false,
+          "doc": "Parameters for the Davidson-Liu iterative eigensolver.\nIf a list is provided, it should have one entry per state.\nIf only a single DavidsonLiuParams is provided, it will be used for all states.",
+          "default": {
+            "repr": "DavidsonLiuParams(guess_per_root=2, ndets_per_guess=10, collapse_per_root=2, basis_per_root=4, maxiter=100, e_tol=1e-12, r_tol=1e-06)"
+          }
+        },
+        {
+          "name": "do_test_rdms",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, compute and test the reduced density matrices (RDMs) after the CI calculation.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "SpinorUpcaster": {
+      "module": "forte2.orbitals.converters",
+      "mro": [
+        "SpinorUpcaster",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": false,
+      "summary": "A converter class to convert a spatial-orbital-based method to a spinor-based method by converting the MO coefficients to spinor basis and updating the system object.",
+      "options": [
+        {
+          "name": "x2c_override",
+          "type": "forte2.base_classes.params.X2CParams | None",
+          "required": false,
+          "doc": "The X2C Hamiltonian to use, as an :class:`X2CParams` instance. If provided,\n:attr:`System.x2c` is replaced by this value and the X2C helper is rebuilt.\nIf None, the System option is retained.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "apply_random_phase",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to apply a random phase to the MO coefficients after conversion. This can be useful for testing the robustness of downstream methods to the choice of MO phases.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "rng",
+          "type": "numpy.random._generator.Generator | int",
+          "required": false,
+          "doc": "The random number generator to use for generating the random phase. Can be an instance of `np.random.Generator` or an integer seed.",
+          "default": {
+            "repr": "Generator(PCG64)"
+          }
+        }
+      ]
+    },
+    "State": {
+      "module": "forte2.state.state",
+      "mro": [
+        "State"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "Class to represent a state of a quantum system.",
+      "options": [
+        {
+          "name": "multiplicity",
+          "type": "int",
+          "required": true,
+          "doc": "Multiplicity of the state (2S+1)."
+        },
+        {
+          "name": "ms",
+          "type": "float",
+          "required": true,
+          "doc": "Spin projection (Ms) of the state."
+        },
+        {
+          "name": "nel",
+          "type": "int",
+          "required": false,
+          "doc": "Total number of electrons in the state. If not provided, it is calculated from the system and charge.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "system",
+          "type": "forte2.system.system.System",
+          "required": false,
+          "doc": "The system to which this state belongs. If not provided, `nel` must be specified.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "charge",
+          "type": "int",
+          "required": false,
+          "doc": "Charge of the state. Used to calculate the number of electrons if `system` is provided. Ignored if `nel` is provided.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "gas_min",
+          "type": "list[int]",
+          "required": false,
+          "doc": "Minimum number of electrons in each GAS.\nIf not provided, no occupation restrictions will be applied.\nIf the length of `gas_min` is smaller than the number of GASes, the restrictions\nwill be sequentially applied to GAS1, GAS2, until the end of `gas_min`,\nbeyond which no restrictions will be applied.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "gas_max",
+          "type": "list[int]",
+          "required": false,
+          "doc": "Maximum number of electrons in each GAS. Processed similarly to `gas_min`.",
+          "default": {
+            "value": []
+          }
+        },
+        {
+          "name": "symmetry",
+          "type": "int",
+          "required": false,
+          "doc": "Symmetry of the state.",
+          "default": {
+            "value": 0
+          }
+        },
+        {
+          "name": "symmetry_label",
+          "type": "str",
+          "required": false,
+          "doc": "Label for the symmetry of the state.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    },
+    "System": {
+      "module": "forte2.system.system",
+      "mro": [
+        "System"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "A class to represent a quantum chemical system.",
+      "options": [
+        {
+          "name": "xyz",
+          "type": "str",
+          "required": true,
+          "doc": "A XYZ string representing the atomic coordinates."
+        },
+        {
+          "name": "basis_set",
+          "type": "str | dict",
+          "required": true,
+          "doc": "The basis set to be used, either as a string (e.g. \"cc-pvdz\") or as a dictionary\nassigning potentially different basis sets to each atom (e.g. {\"H\": \"sto-3g\", \"O\": \"cc-pvdz\"})."
+        },
+        {
+          "name": "auxiliary_basis_set",
+          "type": "str | dict",
+          "required": false,
+          "doc": "The auxiliary basis set, either as a string or a dictionary (see `basis`).",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "minao_basis_set",
+          "type": "str | dict",
+          "required": false,
+          "doc": null,
+          "default": {
+            "value": "cc-pvtz-minao"
+          }
+        },
+        {
+          "name": "x2c",
+          "type": "forte2.base_classes.params.X2CParams | None",
+          "required": false,
+          "doc": "The X2C Hamiltonian to use, specified as an :class:`X2CParams` instance\n(see its documentation for the available ``x2c_type``, ``x2c_model``, and\n``snso_type`` options). If None, no X2C transformation is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "unit",
+          "type": "Literal['angstrom', 'bohr']",
+          "required": false,
+          "doc": "The unit for the atomic coordinates. Can be \"angstrom\" or \"bohr\".",
+          "default": {
+            "value": "angstrom"
+          }
+        },
+        {
+          "name": "overlap_ortho_rtol",
+          "type": "float",
+          "required": false,
+          "doc": "The relative tolerance for the orthogonalization of the overlap matrix.",
+          "default": {
+            "value": 1e-08
+          }
+        },
+        {
+          "name": "df_ortho_rtol",
+          "type": "float | None",
+          "required": false,
+          "doc": "The relative tolerance for the orthogonalization of Coulomb metric in the density fitting procedure.\nIf None, a complete Cholesky decomposition of the Coulomb metric is performed without truncation.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "cholesky_tei",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, auxiliary basis sets (if any) will be disregarded, and the B tensor will be built using the Cholesky decomposition of the 4D ERI tensor instead.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "cholesky_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The tolerance for the Cholesky decomposition of the 4D ERI tensor. Only used if `cholesky_tei` is True.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "symmetry",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to automatically detect the largest Abelian point group symmetry of the molecule.\nThis will center the molecule at its center of mass and reorient it along its principal axes of inertia.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "symmetry_tol",
+          "type": "float",
+          "required": false,
+          "doc": "The tolerance for detecting symmetry.",
+          "default": {
+            "value": 0.0001
+          }
+        },
+        {
+          "name": "use_gaussian_charges",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to use Gaussian nuclear charge distributions instead of point charges.",
+          "default": {
+            "value": false
+          }
+        },
+        {
+          "name": "jk_mem_thres_mb",
+          "type": "float | None",
+          "required": false,
+          "doc": "If set, the Fock builder will have a memory footprint smaller than the threshold.\nIf None, the the in-core Fock builder algorithm will be used with no special memory limit.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "integral_backend",
+          "type": "Literal['auto', 'libint2', 'libcint']",
+          "required": false,
+          "doc": "The integral backend to use. Options are \"auto\", \"libint2\", and \"libcint\".",
+          "default": {
+            "value": "auto"
+          }
+        }
+      ]
+    },
+    "UHF": {
+      "module": "forte2.scf.uhf",
+      "mro": [
+        "UHF",
+        "SCFBase",
+        "Method",
+        "ABC"
+      ],
+      "is_method": true,
+      "has_gradient": true,
+      "summary": "A class that runs unrestricted Hartree-Fock calculations.",
+      "options": [
+        {
+          "name": "charge",
+          "type": "int",
+          "required": true,
+          "doc": "Charge of the system."
+        },
+        {
+          "name": "do_diis",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to perform DIIS acceleration.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "diis_start",
+          "type": "int",
+          "required": false,
+          "doc": "Which iteration to start collecting DIIS error vectors.",
+          "default": {
+            "value": 1
+          }
+        },
+        {
+          "name": "diis_nvec",
+          "type": "int",
+          "required": false,
+          "doc": "How many DIIS error vectors to keep.",
+          "default": {
+            "value": 8
+          }
+        },
+        {
+          "name": "diis_min",
+          "type": "int",
+          "required": false,
+          "doc": "Minimum number of DIIS vectors to perform extrapolation.",
+          "default": {
+            "value": 2
+          }
+        },
+        {
+          "name": "e_tol",
+          "type": "float",
+          "required": false,
+          "doc": "Energy convergence tolerance.",
+          "default": {
+            "value": 1e-09
+          }
+        },
+        {
+          "name": "d_tol",
+          "type": "float",
+          "required": false,
+          "doc": "RMS density change convergence tolerance.",
+          "default": {
+            "value": 1e-06
+          }
+        },
+        {
+          "name": "maxiter",
+          "type": "int",
+          "required": false,
+          "doc": "Maximum iteration for SCF.",
+          "default": {
+            "value": 100
+          }
+        },
+        {
+          "name": "guess_type",
+          "type": "str",
+          "required": false,
+          "doc": "Initial guess type for the SCF calculation. Can be \"minao\" (SAP) or \"hcore\".",
+          "default": {
+            "value": "minao"
+          }
+        },
+        {
+          "name": "level_shift",
+          "type": "float",
+          "required": false,
+          "doc": "Level shift for the SCF calculation. If None, no level shift is applied.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "level_shift_thresh",
+          "type": "float",
+          "required": false,
+          "doc": "If energy change is below this threshold, level shift is turned off.",
+          "default": {
+            "value": 1e-05
+          }
+        },
+        {
+          "name": "die_if_not_converged",
+          "type": "bool",
+          "required": false,
+          "doc": "Whether to raise an error if the SCF calculation does not converge.",
+          "default": {
+            "value": true
+          }
+        },
+        {
+          "name": "ms",
+          "type": "float",
+          "required": false,
+          "doc": "Spin projection. Must be a multiple of 0.5.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "guess_mix",
+          "type": "bool",
+          "required": false,
+          "doc": "If True, will mix the HOMO and LUMO orbitals to try to break alpha-beta degeneracy if ms is 0.0.",
+          "default": {
+            "value": false
+          }
+        }
+      ]
+    },
+    "X2CParams": {
+      "module": "forte2.base_classes.params",
+      "mro": [
+        "X2CParams",
+        "ParamsBase",
+        "ABC"
+      ],
+      "is_method": false,
+      "has_gradient": false,
+      "summary": "Parameters for the exact two-component (X2C) relativistic Hamiltonian.",
+      "options": [
+        {
+          "name": "x2c_type",
+          "type": "Literal[None, 'sf', 'so']",
+          "required": false,
+          "doc": "The spin structure of the X2C transformation. Options are:\n    - None\n    - \"sf\": Spin-free (scalar) X2C.\n    - \"so\": Spin-orbit (two-component) X2C.",
+          "default": {
+            "value": null
+          }
+        },
+        {
+          "name": "x2c_model",
+          "type": "Literal[None, '1e', 'sap']",
+          "required": false,
+          "doc": "The decoupling model used to build the X2C Hamiltonian. Options are:\n    - None\n    - \"1e\": One-electron X2C (bare-nucleus decoupling).\n    - \"sap\": Superposition of atomic potentials X2C.",
+          "default": {
+            "value": "1e"
+          }
+        },
+        {
+          "name": "snso_type",
+          "type": "Literal[None, 'boettger', 'dc', 'dcb', 'row-dependent']",
+          "required": false,
+          "doc": "The screened-nuclear-spin-orbit (SNSO) scaling applied to the spin-orbit\ncoupling. Only valid when ``x2c_type == \"so\"`` and ``x2c_model == \"1e\"``.\nOptions are:\n    - None\n    - \"boettger\": Boettger scaling.\n    - \"dc\": Dirac-Coulomb scaling.\n    - \"dcb\": Dirac-Coulomb-Breit scaling.\n    - \"row-dependent\": Row-dependent scaling.",
+          "default": {
+            "value": null
+          }
+        }
+      ]
+    }
+  }
+}
