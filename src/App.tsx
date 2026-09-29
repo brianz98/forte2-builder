@@ -9,6 +9,7 @@ import { CodePanel } from "./ui/CodePanel";
 import { TemplatesModal } from "./ui/TemplatesModal";
 import { DesignPanel } from "./ui/DesignPanel";
 import { Icon } from "./ui/Icon";
+import { FixButtons } from "./ui/FixButtons";
 
 function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -51,18 +52,30 @@ function useTheme() {
 
 function Toast() {
   const toast = useStore((s) => s.toast);
-  const [visible, setVisible] = useState(false);
+  const dismiss = useStore((s) => s.dismissToast);
+  const [hovered, setHovered] = useState(false);
   useEffect(() => {
-    if (!toast) return;
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), toast.kind === "error" ? 5200 : 3200);
+    if (!toast || hovered) return;
+    const ms = toast.fixes ? 12000 : toast.kind === "error" ? 5200 : 3200;
+    const t = setTimeout(dismiss, ms);
     return () => clearTimeout(t);
-  }, [toast]);
-  if (!toast || !visible) return null;
+  }, [toast, hovered, dismiss]);
+  if (!toast) return null;
   return (
-    <div className={`toast toast-${toast.kind}`} role="status">
+    <div
+      className={`toast toast-${toast.kind}`}
+      role="status"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <Icon name={toast.kind === "error" ? "alert" : "info"} size={15} />
-      {toast.message}
+      <div className="toast-body">
+        <span>{toast.message}</span>
+        {toast.fixes && <FixButtons fixes={toast.fixes} />}
+      </div>
+      <button className="toast-close" onClick={dismiss} aria-label="Dismiss">
+        <Icon name="x" size={13} />
+      </button>
     </div>
   );
 }

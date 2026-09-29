@@ -33,7 +33,7 @@ export function Canvas() {
   const select = useStore((s) => s.select);
   const connect = useStore((s) => s.connect);
   const addNode = useStore((s) => s.addNode);
-  const showToast = useStore((s) => s.showToast);
+  const explainConnection = useStore((s) => s.explainConnection);
   const rf = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -206,10 +206,9 @@ export function Canvas() {
         state.fromHandle?.type === "source"
           ? [state.fromNode.id, state.toNode.id]
           : [state.toNode.id, state.fromNode.id];
-      const problem = connectionProblem(useStore.getState(), parent, child);
-      if (problem) showToast(problem, "error");
+      explainConnection(parent, child);
     },
-    [showToast],
+    [explainConnection],
   );
 
   const onDrop = useCallback(

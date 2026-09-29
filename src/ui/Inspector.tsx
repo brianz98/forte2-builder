@@ -1,6 +1,8 @@
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useStore } from "../store";
-import { chainNodeOf } from "../graph/ops";
+import { chainNodeOf, familyOf } from "../graph/ops";
+import { suggestFixes, type Fix } from "../rules/fixes";
+import { FixButtons } from "./FixButtons";
 import type { NodeDef, OptionDef } from "../catalog/types";
 import type { GraphDoc, GraphNode } from "../graph/types";
 import type { Catalog } from "../catalog/types";
@@ -112,15 +114,24 @@ function NodeInspector({ node }: { node: GraphNode }) {
   const changeType = useStore((s) => s.changeType);
   const addSlotChild = useStore((s) => s.addSlotChild);
   const [advanced, setAdvanced] = useState(false);
+  const fixes = useMemo(() => {
+    const out = new Map<string, Fix[]>();
+    for (const i of analysis.byNode[node.id] ?? []) {
+      out.set(i.code, suggestFixes(doc, catalog, i, analysis));
+    }
+    return out;
+  }, [doc, catalog, analysis, node.id]);
   const def = catalog.nodes[node.type];
   if (!def) return <div className="inspector">Unknown type {node.type}</div>;
 
   const issues = analysis.byNode[node.id] ?? [];
-  const fieldIssue = (f: string) => issues.find((i) => i.field === f)?.message;
-  const general = issues.filter((i) => !i.field || !(i.field in def.options));
-  const siblings = Object.values(catalog.nodes).filter(
-    (d) => d.kind === def.kind && d.group === def.group && d.name !== def.name,
+  const fieldIssue = (f: string) => issues.find((i) => i.field === f);
+  // Issues without an option field of their own, and any issue with a fix, so
+  // fixes show at the top rather than beside a field further down.
+  const general = issues.filter(
+    (i) => !i.field || !(i.field in def.options) || (fixes.get(i.code)?.length ?? 0) > 0,
   );
+  const siblings = familyOf(catalog, node.type);
   const owner = node.owner ? doc.nodes[node.owner.id] : undefined;
   const parent = node.parent ? doc.nodes[node.parent] : undefined;
 
@@ -141,17 +152,20 @@ function NodeInspector({ node }: { node: GraphNode }) {
     return n === undefined ? undefined : `The System has ${n} electrons at charge ${charge}.`;
   };
 
-  const field = ([name, o]: [string, OptionDef]) => (
-    <OptionField
-      key={name}
-      name={name}
-      opt={o}
-      value={node.options[name]}
-      error={fieldIssue(name)}
-      hint={nelHint(name)}
-      onChange={(v) => setOption(node.id, name, v)}
-    />
-  );
+  const field = ([name, o]: [string, OptionDef]) => {
+    const issue = fieldIssue(name);
+    return (
+      <OptionField
+        key={name}
+        name={name}
+        opt={o}
+        value={node.options[name]}
+        error={issue?.message}
+        hint={nelHint(name)}
+        onChange={(v) => setOption(node.id, name, v)}
+      />
+    );
+  };
 
   return (
     <div className="inspector" style={groupStyle(catalog, def)}>
@@ -219,7 +233,10 @@ function NodeInspector({ node }: { node: GraphNode }) {
           {general.map((i, k) => (
             <div key={k} className={`issue issue-${i.severity}`}>
               <Icon name={i.severity === "error" ? "alert" : "info"} size={14} />
-              <span>{i.message}</span>
+              <div className="issue-body">
+                <span>{i.message}</span>
+                <FixButtons fixes={fixes.get(i.code) ?? []} />
+              </div>
             </div>
           ))}
         </div>

@@ -1,5 +1,8 @@
 # forte2 builder
 
+[![Build and deploy](https://github.com/brianz98/forte2-builder/actions/workflows/pages.yml/badge.svg)](https://github.com/brianz98/forte2-builder/actions/workflows/pages.yml)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-website-blue?logo=github)](https://brianz98.github.io/forte2-builder/)
+
 A visual input builder for [forte2](https://github.com/evangelistalab/forte2). You connect methods
 into a chain, the builder checks that each step can follow the one before it, and it writes the
 Python input for you.
@@ -106,6 +109,15 @@ what can connect to what are the following:
 `rules`
 : Checks that the fields above can't express. For example, "spin-orbit X2C needs GHF" is a rule on
   the one-component SCF classes.
+
+`family`
+: Types that can replace each other, such as the SCF classes or the four solvers. The inspector's
+  **Switch to** menu and the fix suggestions only swap a node for another type in its family.
+
+When a check fails, the builder suggests fixes: connecting a loose node, inserting one node before
+the failing one, or switching the node or its upstream method to another type in its family. It
+tries each candidate on a copy of the graph and offers it only if the failed check passes and the
+graph has fewer errors afterward.
 
 To see your changes, save the file. The development server reloads it, and a panel on the canvas
 lists any catalog problems, such as an option that isn't a constructor argument of that forte2

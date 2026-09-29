@@ -79,6 +79,20 @@ describe("rules", () => {
     ]);
   });
 
+  it("reports a disconnected method once, not again on everything below it", () => {
+    const doc = graph(
+      n2,
+      { id: "avas", type: "AVAS", options: { subspace: ["N(2p)"] } },
+      {
+        id: "mc",
+        type: "MCOptimizer",
+        parent: "avas",
+        slots: { ci_solver: { type: "CISolver", slots: { states: state } } },
+      },
+    );
+    expect(messages(doc)).toEqual(["avas: Connect AVAS to an upstream method."]);
+  });
+
   it("asks for an active space when nothing upstream defines one", () => {
     const doc = graph(
       n2,

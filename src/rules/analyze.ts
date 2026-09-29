@@ -10,6 +10,9 @@ export interface Issue {
   field?: string;
   severity: Severity;
   message: string;
+  // Identifies the check that failed, independent of the wording, for
+  // example "parents", "requires:mo_space" or "option:charge".
+  code: string;
   // True for problems with how the node attaches to its upstream method.
   connection?: boolean;
 }
@@ -70,6 +73,7 @@ export function deriveFacts(def: NodeDef, id: string, parent?: Facts): Facts {
 
 interface AttachProblem {
   message: string;
+  code: string;
   // The node the problem belongs to, when it isn't the child itself (a solver
   // whose requirements a driver inherits).
   nodeId?: string;
@@ -88,21 +92,23 @@ export function attachProblems(
   const def = catalog.nodes[childType];
   const pdef = catalog.nodes[parent.type];
   const out: AttachProblem[] = [];
-  if (!def) return [{ message: `${childType} isn't in this forte2 catalog.` }];
+  if (!def) return [{ code: "unknown", message: `${childType} isn't in this forte2 catalog.` }];
   if (def.kind === "system") {
-    return [{ message: `${childType} starts a chain; it can't follow another node.` }];
+    return [{ code: "kind", message: `${childType} starts a chain; it can't follow another node.` }];
   }
   if (def.kind === "solver" || def.kind === "value") {
-    return [{ message: `${childType} goes inside another node, not after it.` }];
+    return [{ code: "kind", message: `${childType} goes inside another node, not after it.` }];
   }
   if (def.parents && !def.parents.includes(parent.type)) {
     out.push({
+      code: "parents",
       message: `${childType} must follow ${joinOr(def.parents)}, not ${parent.type}.`,
     });
   }
   for (const fact of def.requires ?? []) {
     if (!parentFacts.provides.has(fact)) {
       out.push({
+        code: `requires:${fact}`,
         message: `${childType} needs ${factLabel(catalog, fact)}, which ${parent.type} doesn't provide.`,
       });
     }
@@ -110,9 +116,13 @@ export function attachProblems(
   const checkAttrs = (who: string, need: Record<string, Scalar>, nodeId?: string) => {
     for (const [k, v] of Object.entries(need)) {
       const have = parentFacts.attrs[k];
+      // Unknown when the upstream chain isn't connected to a System; that is
+      // reported on its own.
+      if (have === undefined) continue;
       if (have !== v) {
         out.push({
           nodeId,
+          code: `attrs:${k}`,
           message: `${who} needs ${attrLabel(catalog, k, v)}, but ${parent.type} gives ${attrLabel(catalog, k, have)}.`,
         });
       }
@@ -139,11 +149,11 @@ export function attachProblems(
     };
     for (const rule of def.rules) {
       if ((rule.severity ?? "error") !== "error" || ruleReferencesSelf(rule)) continue;
-      if (!ruleHolds(rule, ctx)) out.push({ message: rule.message });
+      if (!ruleHolds(rule, ctx)) out.push({ code: `rule:${rule.message}`, message: rule.message });
     }
   }
   if (pdef && (pdef.provides ?? []).length === 0 && out.length === 0) {
-    out.push({ message: `Nothing can follow ${parent.type}.` });
+    out.push({ code: "terminal", message: `Nothing can follow ${parent.type}.` });
   }
   return out;
 }
@@ -257,34 +267,36 @@ export function analyze(doc: GraphDoc, catalog: Catalog): Analysis {
   const issues: Issue[] = [];
   const add = (
     nodeId: string,
+    code: string,
     message: string,
     severity: Severity = "error",
     field?: string,
     connection?: boolean,
-  ) => issues.push({ nodeId, message, severity, field, ...(connection ? { connection } : {}) });
+  ) =>
+    issues.push({ nodeId, code, message, severity, field, ...(connection ? { connection } : {}) });
 
   for (const id of chainOrder(doc)) {
     const node = doc.nodes[id];
     const def = catalog.nodes[node.type];
     if (!def) {
-      add(id, `${node.type} isn't in the forte2 ${catalog.forte2_version} catalog.`);
+      add(id, "unknown", `${node.type} isn't in the forte2 ${catalog.forte2_version} catalog.`);
       continue;
     }
     if (def.kind === "solver" || def.kind === "value") {
       const owners = Object.values(catalog.nodes)
         .filter((d) => Object.values(d.slots).some((s) => s.accepts.includes(node.type)))
         .map((d) => d.name);
-      add(id, `Place ${node.type} inside ${joinOr(owners)}.`);
+      add(id, "orphan", `Place ${node.type} inside ${joinOr(owners)}.`);
       continue;
     }
     const parent = node.parent ? doc.nodes[node.parent] : undefined;
     const pf = parent ? facts[parent.id] : undefined;
     if (def.kind !== "system") {
       if (!parent) {
-        add(id, `Connect ${node.type} to an upstream method.`, "error", undefined, true);
+        add(id, "connect", `Connect ${node.type} to an upstream method.`, "error", undefined, true);
       } else if (pf) {
         for (const p of attachProblems(catalog, doc, node.type, parent, pf, node)) {
-          add(p.nodeId ?? id, p.message, "error", undefined, true);
+          add(p.nodeId ?? id, p.code, p.message, "error", undefined, true);
         }
       }
     }
@@ -311,44 +323,63 @@ export function analyze(doc: GraphDoc, catalog: Catalog): Analysis {
     for (const [name, opt] of Object.entries(def.options)) {
       const v = node.options[name];
       if (!hasValue(v)) {
-        if (opt.required) add(node.id, `Set ${name}.`, "error", name);
+        if (opt.required) add(node.id, `option:${name}`, `Set ${name}.`, "error", name);
         continue;
       }
       const problem = optionProblem(name, opt, v);
-      if (problem) add(node.id, problem, "error", name);
+      if (problem) add(node.id, `option:${name}`, problem, "error", name);
     }
     for (const name of Object.keys(node.options)) {
       if (!def.options[name]) {
-        add(node.id, `${node.type} has no option ${name} in forte2 ${catalog.forte2_version}.`, "warning", name);
+        add(
+          node.id,
+          `unknown-option:${name}`,
+          `${node.type} has no option ${name} in forte2 ${catalog.forte2_version}.`,
+          "warning",
+          name,
+        );
       }
     }
 
     for (const [slot, sdef] of Object.entries(def.slots)) {
       const ids = node.slots[slot] ?? [];
       if (sdef.required && ids.length === 0) {
-        add(node.id, `Add ${joinOr(sdef.accepts)} to ${slot}.`, "error", slot);
+        add(node.id, `slot:${slot}`, `Add ${joinOr(sdef.accepts)} to ${slot}.`, "error", slot);
       }
-      if (!sdef.many && ids.length > 1) add(node.id, `${slot} takes one object.`, "error", slot);
+      if (!sdef.many && ids.length > 1) {
+        add(node.id, `slot:${slot}`, `${slot} takes one object.`, "error", slot);
+      }
       for (const c of ids) {
         const ctype = doc.nodes[c]?.type;
         if (ctype && !sdef.accepts.includes(ctype)) {
-          add(node.id, `${slot} takes ${joinOr(sdef.accepts)}, not ${ctype}.`, "error", slot);
+          add(node.id, `slot:${slot}`, `${slot} takes ${joinOr(sdef.accepts)}, not ${ctype}.`, "error", slot);
         }
       }
     }
     for (const slot of Object.keys(node.slots)) {
-      if (!def.slots[slot]) add(node.id, `${node.type} has no argument ${slot}.`, "warning", slot);
+      if (!def.slots[slot]) {
+        add(node.id, `unknown-slot:${slot}`, `${node.type} has no argument ${slot}.`, "warning", slot);
+      }
     }
 
     if (node.type === "State" || node.type === "RelState") {
-      for (const p of stateProblems(node, ctx.system)) add(node.id, p.message, "error", p.field);
+      for (const p of stateProblems(node, ctx.system)) {
+        add(node.id, `state:${p.field}`, p.message, "error", p.field);
+      }
     }
 
     for (const rule of def.rules) {
       // Upstream-only rules need an upstream to look at.
       if (!parentFacts && !ruleReferencesSelf(rule) && def.kind !== "system") continue;
       if (!ruleHolds(rule, ctx)) {
-        add(node.id, rule.message, rule.severity ?? "error", rule.field, !ruleReferencesSelf(rule));
+        add(
+          node.id,
+          `rule:${rule.message}`,
+          rule.message,
+          rule.severity ?? "error",
+          rule.field,
+          !ruleReferencesSelf(rule),
+        );
       }
     }
   }

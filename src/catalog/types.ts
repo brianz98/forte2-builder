@@ -79,6 +79,9 @@ export interface NodeDef {
   import: string;
   api?: string;
   var?: string;
+  // Types in the same family can replace each other (RHF and GHF, CISolver
+  // and RelCISolver); used by "Switch to" and fix suggestions.
+  family?: string;
   abstract?: boolean;
   parents?: string[];
   requires?: string[];

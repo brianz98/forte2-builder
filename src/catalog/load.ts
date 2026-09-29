@@ -40,6 +40,7 @@ interface RawNode {
   import?: string;
   api?: string;
   var?: string;
+  family?: string;
   parents?: string[];
   requires?: string[];
   provides?: string[];
@@ -183,6 +184,7 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
       import: r.import ?? "forte2",
       api: r.api ?? (dc ? apiUrl(raw.docs_base, dc.module, dumpName) : undefined),
       var: r.var,
+      family: r.family,
       parents: r.parents,
       requires: r.requires ?? [],
       provides: r.provides ?? [],

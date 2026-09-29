@@ -6,7 +6,8 @@ import { parseGraphFile, serializeGraph } from "./graph/io";
 import * as ops from "./graph/ops";
 import { analyze, attachProblems, type Analysis } from "./rules/analyze";
 import { templates } from "./templates";
-import { stateElectrons } from "./chem/state";
+import { connectionFixes, type Fix } from "./rules/fixes";
+import { seedNewStates as seedStates } from "./chem/state";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -45,6 +46,7 @@ interface Toast {
   message: string;
   kind: "info" | "error";
   nonce: number;
+  fixes?: Fix[];
 }
 
 interface CommitOptions {
@@ -87,6 +89,8 @@ export interface Store {
   addSlotChild(ownerId: string, slot: string, type: string): void;
   removeNode(id: string): void;
   changeType(id: string, type: string): void;
+  applyFix(fix: Fix): void;
+  explainConnection(parent: string, child: string): void;
   undo(): void;
   redo(): void;
   requestLayout(fit?: boolean): void;
@@ -94,22 +98,9 @@ export interface Store {
   setShowDesign(show: boolean): void;
   setRightTab(tab: Store["rightTab"]): void;
   setTemplatesOpen(open: boolean): void;
-  showToast(message: string, kind?: Toast["kind"]): void;
+  showToast(message: string, kind?: Toast["kind"], fixes?: Fix[]): void;
+  dismissToast(): void;
   exportFile(): GraphFile;
-}
-
-// A new State defaults to a singlet; make it a doublet when the System has an
-// odd number of electrons.
-function seedStates(prev: GraphDoc, doc: GraphDoc, catalog: Catalog): GraphDoc {
-  let out = doc;
-  for (const n of Object.values(doc.nodes)) {
-    if (prev.nodes[n.id] || (n.type !== "State" && n.type !== "RelState")) continue;
-    const nel = stateElectrons(n, ops.rootSystemOf(doc, catalog, n.id));
-    if (nel !== undefined && nel % 2 === 1 && n.options.multiplicity === 1) {
-      out = ops.setOption(ops.setOption(out, n.id, "multiplicity", 2), n.id, "ms", 0.5);
-    }
-  }
-  return out;
 }
 
 const STORAGE = { doc: "forte2-builder:graph", design: "forte2-builder:design" };
@@ -249,9 +240,8 @@ export const useStore = create<Store>((set, get) => ({
 
   connect(parentId, childId) {
     const s = get();
-    const problem = connectionProblem(s, parentId, childId);
-    if (problem) {
-      s.showToast(problem, "error");
+    if (connectionProblem(s, parentId, childId)) {
+      s.explainConnection(parentId, childId);
       return false;
     }
     s.commit(ops.setParent(s.doc, childId, parentId), { relayout: true });
@@ -290,6 +280,18 @@ export const useStore = create<Store>((set, get) => ({
       upstreamAttrs: upstream ? s.analysis.facts[upstream]?.attrs : undefined,
     });
     s.commit(seedStates(s.doc, doc, s.catalog), { relayout: true });
+  },
+
+  applyFix(fix) {
+    set({ toast: undefined });
+    get().commit(fix.doc, { select: fix.select ?? null, relayout: true });
+  },
+
+  explainConnection(parentId, childId) {
+    const s = get();
+    const problem = connectionProblem(s, parentId, childId);
+    if (!problem) return;
+    s.showToast(problem, "error", connectionFixes(s.doc, s.catalog, parentId, childId));
   },
 
   undo() {
@@ -345,8 +347,12 @@ export const useStore = create<Store>((set, get) => ({
     set({ templatesOpen: open });
   },
 
-  showToast(message, kind = "info") {
-    set({ toast: { message, kind, nonce: Date.now() } });
+  showToast(message, kind = "info", fixes) {
+    set({ toast: { message, kind, nonce: Date.now(), fixes: fixes?.length ? fixes : undefined } });
+  },
+
+  dismissToast() {
+    set({ toast: undefined });
   },
 
   exportFile() {

@@ -1125,16 +1125,55 @@ button {
   width: 100%;
 }
 
-.issue svg {
+.issue > svg {
   flex: none;
   margin-top: 2px;
+}
+
+.issue-body {
+  min-width: 0;
+}
+
+.fixes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fix-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.fix-btn svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.fix-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .issue-error {
   background: var(--danger-soft);
 }
 
-.issue-error svg {
+.issue-error > svg {
   color: var(--danger);
 }
 
@@ -1142,7 +1181,7 @@ button {
   background: var(--warn-soft);
 }
 
-.issue-warning svg {
+.issue-warning > svg {
   color: var(--warn);
 }
 
@@ -1760,13 +1799,51 @@ textarea.input {
   animation: toast-in 0.18s ease-out;
 }
 
-.toast svg {
+.toast > svg {
   flex: none;
   margin-top: 2px;
 }
 
-.toast-error svg {
+.toast-error > svg {
   color: #ff8787;
+}
+
+.toast-body {
+  min-width: 0;
+}
+
+.toast .fix-btn {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--surface) 35%, transparent);
+  color: var(--surface);
+}
+
+.toast .fix-btn svg {
+  color: currentColor;
+}
+
+.toast .fix-btn:hover {
+  background: color-mix(in srgb, var(--surface) 12%, transparent);
+  border-color: var(--surface);
+}
+
+.toast-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -1px -4px 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--surface);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.toast-close:hover {
+  opacity: 1;
 }
 
 @keyframes toast-in {

@@ -1,4 +1,6 @@
-import type { GraphNode } from "../graph/types";
+import type { Catalog } from "../catalog/types";
+import type { GraphDoc, GraphNode } from "../graph/types";
+import { rootSystemOf, setOption } from "../graph/ops";
 import { nuclearCharge, parseAtoms } from "./xyz";
 
 const NAMES = ["singlet", "doublet", "triplet", "quartet", "quintet", "sextet", "septet"];
@@ -47,6 +49,20 @@ export function stateProblems(
         field: "ms",
         message: `Mₛ = ${ms} is outside a ${multiplicityName(mult)}, which allows |Mₛ| ≤ ${(mult - 1) / 2}.`,
       });
+    }
+  }
+  return out;
+}
+
+// A new State defaults to a singlet; make each State that `doc` adds to
+// `prev` a doublet when the System has an odd number of electrons.
+export function seedNewStates(prev: GraphDoc, doc: GraphDoc, catalog: Catalog): GraphDoc {
+  let out = doc;
+  for (const n of Object.values(doc.nodes)) {
+    if (prev.nodes[n.id] || (n.type !== "State" && n.type !== "RelState")) continue;
+    const nel = stateElectrons(n, rootSystemOf(doc, catalog, n.id));
+    if (nel !== undefined && nel % 2 === 1 && n.options.multiplicity === 1) {
+      out = setOption(setOption(out, n.id, "multiplicity", 2), n.id, "ms", 0.5);
     }
   }
   return out;

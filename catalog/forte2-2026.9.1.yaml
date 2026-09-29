@@ -14,6 +14,7 @@
 #   sets       attributes set for everything downstream (else inherited)
 #   requires_attrs  attributes the parent must have
 #   slots      constructor arguments that take another catalog object
+#   family     types that can replace each other in "Switch to" and fixes
 #   rules      extra checks; paths are self.<option>, parent.<type|provides|attr>,
 #              system.<type|option|slot.option>
 
@@ -105,6 +106,7 @@ nodes:
     abstract: true
     kind: method
     group: scf
+    family: scf
     import: forte2
     parents: [System, HubbardModel]
     provides: [system, mos, eps, energy]
@@ -271,6 +273,7 @@ nodes:
     abstract: true
     kind: driver
     group: drivers
+    family: driver
     import: forte2
     requires: [mos]
     provides: [system, mos, mo_space, energy]
@@ -313,6 +316,7 @@ nodes:
     abstract: true
     kind: solver
     group: solvers
+    family: solver
     import: forte2
     var: ci_solver
     card: [states, nroots, core_orbitals, active_orbitals]
@@ -409,6 +413,7 @@ nodes:
     abstract: true
     kind: method
     group: correlation
+    family: dsrg
     import: forte2
     var: dsrg
     parents: [CI, MCOptimizer]
@@ -479,6 +484,7 @@ nodes:
   State:
     kind: value
     group: params
+    family: state
     import: forte2
     summary: A target electronic state; electron count, spin and GAS restrictions.
     card: [nel, multiplicity, ms]

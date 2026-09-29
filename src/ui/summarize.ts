@@ -74,12 +74,12 @@ export function electronsFromSystem(
 export function chipText(doc: GraphDoc, catalog: Catalog, node: GraphNode, def: NodeDef): string {
   const o = node.options;
   if (node.type === "State" || node.type === "RelState") {
-    let nel: string = hasValue(o.nel) ? String(o.nel) : "?";
+    let electrons = hasValue(o.nel) ? `${o.nel} e⁻` : "? e⁻";
     if (!hasValue(o.nel) && o.system === true) {
       const n = electronsFromSystem(doc, catalog, node.id, Number(o.charge ?? 0));
-      nel = n === undefined ? "System" : String(n);
+      electrons = n === undefined ? "e⁻ from System" : `${n} e⁻`;
     }
-    const parts = [`${nel} e⁻`];
+    const parts = [electrons];
     if (hasValue(o.multiplicity)) {
       parts.push(multiplicityName(Number(o.multiplicity)));
     }

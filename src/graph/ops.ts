@@ -141,6 +141,27 @@ export function createNode(
   return { doc: next, id };
 }
 
+// Put a new node of `type` between `parentId` and its child `childId`.
+export function insertBetween(
+  doc: GraphDoc,
+  catalog: Catalog,
+  parentId: string,
+  childId: string,
+  type: string,
+  ctx: CreateContext = {},
+): { doc: GraphDoc; id: string } {
+  const { doc: next, id } = createNode(doc, catalog, type, { parent: parentId }, ctx);
+  next.nodes[childId].parent = id;
+  return { doc: next, id };
+}
+
+// The other types in `type`'s family, in catalog order.
+export function familyOf(catalog: Catalog, type: string): NodeDef[] {
+  const family = catalog.nodes[type]?.family;
+  if (!family) return [];
+  return Object.values(catalog.nodes).filter((d) => d.family === family && d.name !== type);
+}
+
 export function addSlotChild(
   doc: GraphDoc,
   catalog: Catalog,
