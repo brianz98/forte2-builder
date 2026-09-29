@@ -3,6 +3,7 @@ import { load as loadYaml } from "js-yaml";
 import { useStore, type Theme } from "../store";
 import type { GraphFile } from "../graph/types";
 import { Icon } from "./Icon";
+import logoUrl from "../assets/forte2-logo.png";
 
 const NEXT_THEME: Record<Theme, Theme> = { system: "light", light: "dark", dark: "system" };
 const THEME_ICON: Record<Theme, string> = { system: "monitor", light: "sun", dark: "moon" };
@@ -45,19 +46,21 @@ export function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
-          <rect width="32" height="32" rx="8" fill="var(--accent)" />
-          <circle cx="9" cy="16" r="3.2" fill="#fff" />
-          <circle cx="23" cy="9" r="3.2" fill="#fff" />
-          <circle cx="23" cy="23" r="3.2" fill="#fff" />
-          <path d="M12 15l8-5M12 17l8 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <span className="brand-name">
-          forte2 <span className="muted">builder</span>
-        </span>
-        <span className="version" title="Catalog version">
-          forte2 {catalog.forte2_version}
-        </span>
+        <img className="brand-logo" src={logoUrl} alt="Forte2" width={69} height={23} />
+        <span className="brand-name">input builder</span>
+        {catalog.release ? (
+          <a
+            className="version"
+            href={catalog.release.url}
+            target="_blank"
+            rel="noreferrer"
+            title="The forte2 release this builder describes"
+          >
+            {catalog.release.tag}
+          </a>
+        ) : (
+          <span className="version">forte2 {catalog.forte2_version}</span>
+        )}
       </div>
       <div className="doc-title" title={meta.summary}>
         {meta.title ?? "Untitled"}

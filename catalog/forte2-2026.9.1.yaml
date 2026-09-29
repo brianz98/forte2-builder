@@ -25,6 +25,9 @@
 #              system.<type|option|slot.option>
 
 forte2_version: "2026.9.1"
+release:
+  tag: v2026.9.1-alpha
+  url: https://github.com/evangelistalab/forte2/releases/tag/v2026.9.1-alpha
 docs_base: "https://forte2.readthedocs.io/en/latest/autoapi/"
 
 groups:

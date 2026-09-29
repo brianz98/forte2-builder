@@ -118,8 +118,15 @@ export interface FactDef {
   label: string;
 }
 
+export interface Release {
+  tag: string;
+  url: string;
+}
+
 export interface Catalog {
   forte2_version: string;
+  // The forte2 release this catalog describes.
+  release?: Release;
   docs_base: string;
   groups: Record<string, GroupDef>;
   facts: Record<string, FactDef>;

@@ -63,6 +63,7 @@ interface RawNode {
 
 export interface RawCatalog {
   forte2_version: string;
+  release?: Catalog["release"];
   docs_base: string;
   groups: Catalog["groups"];
   facts?: Catalog["facts"];
@@ -224,6 +225,7 @@ export function loadCatalog(raw: RawCatalog, dump: Dump | undefined): LoadResult
 
   const catalog: Catalog = {
     forte2_version: raw.forte2_version,
+    release: raw.release,
     docs_base: raw.docs_base,
     groups: raw.groups,
     facts: raw.facts ?? {},
