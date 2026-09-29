@@ -134,6 +134,8 @@ version.
 1. Pick a forte2 test whose input shows a capability worth showing.
 1. Copy one of the files in `templates/` and transcribe the test's input into it. Quote any result
    label that contains a comma, because YAML splits unquoted flow mappings at commas.
+1. Set `section` to the gallery heading to list it under, and `order` to its position. The gallery
+   shows sections in the order of their first template.
 1. Run `npm run check`. The template must pass the rules with no errors or warnings.
 1. Optional: To confirm that the generated script runs and reproduces the test's energies, run it
    against a local forte2, as described in step 5 of the next section.

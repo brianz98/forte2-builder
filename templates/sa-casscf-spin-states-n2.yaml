@@ -1,0 +1,40 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Active-space methods
+order: 3
+title: State-averaged CASSCF over singlet and triplet states
+summary: One singlet and two triplet roots of N₂ in one average, weighted a quarter for the singlet and the rest split 85:15 between the triplets.
+tags: [SA-CASSCF, state averaging, triplet]
+source: tests/mcopt/test_sa_casscf_n2.py
+results:
+  - { label: "Singlet", value: "−109.066432 Eh" }
+  - { label: "Lower triplet", value: "−108.845013 Eh" }
+  - { label: "Weighted average", value: "−108.894050 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        N 0.0 0.0 0.0
+        N 0.0 0.0 1.2
+      basis_set: cc-pvdz
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options:
+          active_orbitals: "[4, 5, 6, 7, 8, 9]"
+          core_orbitals: "[0, 1, 2, 3]"
+          weights: "[[0.25], [0.75 * 0.85, 0.75 * 0.15]]"
+          nroots: "[1, 2]"
+        slots:
+          states:
+            - { type: State, options: { nel: 14, multiplicity: 1, ms: 0.0 } }
+            - { type: State, options: { nel: 14, multiplicity: 3, ms: 0.0 } }

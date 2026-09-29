@@ -68,13 +68,14 @@ function render(expr: Expr, col: number, indent: number, suffix = 0): string {
       ? expr.args.map((a) => ({ prefix: a.name ? `${a.name}=` : "", value: a.value }))
       : expr.items.map((value) => ({ prefix: "", value }));
   // Follow Black: the whole call on one line; else the arguments on one
-  // indented line; else one argument per line with a trailing comma.
+  // indented line; else one argument per line with a trailing comma. A list
+  // literal that needs splitting always goes one item per line.
   const flat = parts.map((p) => p.prefix + render(p.value, 0, indent)).join(", ");
   const oneLine = `${open}${flat}${close}`;
   if (!oneLine.includes("\n") && col + oneLine.length + suffix <= WIDTH) return oneLine;
   if (parts.length === 0) return oneLine;
   const pad = " ".repeat(indent + 4);
-  if (!flat.includes("\n") && indent + 4 + flat.length <= WIDTH) {
+  if (expr.kind === "call" && !flat.includes("\n") && indent + 4 + flat.length <= WIDTH) {
     return `${open}\n${pad}${flat}\n${" ".repeat(indent)}${close}`;
   }
   const lines = parts.map(

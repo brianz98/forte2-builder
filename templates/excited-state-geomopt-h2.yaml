@@ -1,0 +1,39 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Gradients and geometry
+order: 24
+title: Excited-state geometry optimization
+summary: Optimize the H₂ geometry on the second root of a state-averaged CASSCF, using the analytic gradient of that root.
+tags: [geometry optimization, excited states, SA-CASSCF]
+source: tests/optimize/test_geometry_optimizer.py
+results:
+  - { label: "Optimized bond length", value: "2.844550 bohr" }
+  - { label: "Energy at minimum", value: "−0.431723 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0 0 0
+        H 0 0 2.0
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-JKFIT
+      unit: bohr
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12, d_tol: 1.0e-10 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    options: { e_tol: 1.0e-12, g_tol: 1.0e-10, final_orbitals: original }
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { active_orbitals: "[0, 1]", nroots: "2" }
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }
+  - id: opt
+    type: GeometryOptimizer
+    parent: mc
+    options: { root: 1, maxiter: 25, g_tol: 1.0e-7, max_step: 0.5 }

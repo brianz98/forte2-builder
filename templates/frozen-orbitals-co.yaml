@@ -1,0 +1,55 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Active-space methods
+order: 8
+title: Frozen core and frozen virtual orbitals
+summary: Two CASSCF calculations on CO from the same AVAS orbitals, one optimizing every orbital and one with the lowest orbital and the three highest frozen.
+tags: [CASSCF, AVAS, frozen orbitals]
+source: tests/mcopt/test_casscf_frozen_co.py
+results:
+  - { label: "All orbitals optimized", value: "−112.864141 Eh" }
+  - { label: "With frozen orbitals", value: "−112.863387 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        C 0.0 0.0 0.0
+        O 0.0 0.0 1.2
+      basis_set: cc-pvdz
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: avas
+    type: AVAS
+    parent: rhf
+    options:
+      subspace: ["C(2p)", "O(2p)"]
+      selection_method: separate
+      num_active_docc: 3
+      num_active_uocc: 3
+  - id: mc
+    type: MCOptimizer
+    parent: avas
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "4", active_orbitals: "6" }
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }
+          ci_params: { type: CIParams, options: { ci_algorithm: exact } }
+  - id: mc_frozen
+    type: MCOptimizer
+    parent: avas
+    slots:
+      ci_solver:
+        type: CISolver
+        options:
+          frozen_core_orbitals: "1"
+          core_orbitals: "3"
+          active_orbitals: "6"
+          frozen_virtual_orbitals: "3"
+        slots:
+          states: { type: State, options: { system: true, multiplicity: 1, ms: 0.0 } }

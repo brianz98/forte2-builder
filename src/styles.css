@@ -1658,6 +1658,14 @@ textarea.input {
   letter-spacing: -0.015em;
 }
 
+.template-section + .template-section {
+  margin-top: 26px;
+}
+
+.template-section > .section-label {
+  margin: 0 0 10px;
+}
+
 .template-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));

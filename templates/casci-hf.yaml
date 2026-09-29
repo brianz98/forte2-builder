@@ -1,0 +1,33 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Active-space methods
+order: 1
+title: CASCI on hydrogen fluoride
+summary: The shortest correlated chain. RHF orbitals, then one CI calculation in a six-orbital active space, with the F 1s orbital in the core.
+tags: [CASCI]
+source: tests/ci/test_ci_rhf.py
+results:
+  - { label: "CASCI energy", value: "−100.019788 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0.0 0.0 0.0
+        F 0.0 0.0 2.0
+      basis_set: cc-pVDZ
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+      unit: bohr
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: ci
+    type: CI
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "[0]", active_orbitals: "[1, 2, 3, 4, 5, 6]" }
+        slots:
+          states: { type: State, options: { nel: 10, multiplicity: 1, ms: 0.0 } }

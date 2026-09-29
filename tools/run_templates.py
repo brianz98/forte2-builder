@@ -14,6 +14,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -47,11 +48,15 @@ def main():
     for script in scripts:
         leaves = re.findall(r"^(\w+)\.run\(\)$", script.read_text(), flags=re.M)
         start = time.monotonic()
-        proc = subprocess.run(
-            [sys.executable, "-c", RUNNER, str(script), *leaves],
-            capture_output=True,
-            text=True,
-        )
+        # Run in a scratch directory, so files a script writes (cube files)
+        # don't land in the repository.
+        with tempfile.TemporaryDirectory() as scratch:
+            proc = subprocess.run(
+                [sys.executable, "-c", RUNNER, str(script), *leaves],
+                capture_output=True,
+                text=True,
+                cwd=scratch,
+            )
         elapsed = time.monotonic() - start
         if proc.returncode == 0:
             energies = json.loads(proc.stdout.strip().splitlines()[-1])

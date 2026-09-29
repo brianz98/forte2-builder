@@ -75,9 +75,16 @@ export interface LoadResult {
   problems: string[];
 }
 
-// Map a Python annotation from the dump onto a form control type.
+// Map a Python annotation from the dump onto a form control type. Functions
+// without annotations give numpydoc types instead, such as
+// 'str, optional, default="orbital"' or 'List[int] or None'.
 export function inferType(pyType: string): Pick<OptionDef, "type" | "values"> {
-  const t = pyType.replace(/\s+/g, " ").trim();
+  const t = pyType
+    .replace(/\s+/g, " ")
+    .replace(/,\s*(optional|default\b).*$/, "")
+    .replace(/\bor\b/g, "|")
+    .replace(/\b(List|Tuple|Dict)\[/g, (m) => m.toLowerCase())
+    .trim();
   const literal = /^Literal\[(.*)\]$/.exec(t);
   if (literal) {
     const values = literal[1].split(",").map((v) => parseLiteral(v.trim()));

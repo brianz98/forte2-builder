@@ -1,6 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
-order: 4
+section: Active-space methods
+order: 7
 title: Selected CI as the CASSCF solver
 summary: Swap CISolver for heat-bath selected CI inside a two-state CASSCF on N₂.
 tags: [selected CI, CASSCF, state averaging]

@@ -1,6 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
-order: 1
+section: Active-space methods
+order: 2
 title: π-space CASSCF with AVAS
 summary: AVAS picks the three carbon 2p orbitals perpendicular to the ring, then CASSCF optimizes them.
 tags: [AVAS, CASSCF]

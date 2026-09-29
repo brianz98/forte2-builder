@@ -33,5 +33,9 @@ describe("catalog", () => {
     expect(inferType("float | None")).toEqual({ type: "float" });
     expect(inferType("Literal[None, 'sf', 'so']")).toEqual({ type: "enum", values: [null, "sf", "so"] });
     expect(inferType("int | list[int]")).toEqual({ type: "py" });
+    // numpydoc types, used for functions without annotations
+    expect(inferType('str, optional, default="orbital"')).toEqual({ type: "str" });
+    expect(inferType("List[int], optional, default=None")).toEqual({ type: "list[int]" });
+    expect(inferType("float or None")).toEqual({ type: "float" });
   });
 });

@@ -1,0 +1,40 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Relativistic
+order: 15
+title: Scalar and spin-orbit SAP-X2C
+summary: HBr with SAP-X2C, an X2C Hamiltonian that models two-electron picture-change effects. Two chains compare the scalar version with RHF and the spin-orbit version with GHF.
+tags: [relativistic, SAP-X2C, GHF]
+source: tests/scf/test_x2c_sap.py
+results:
+  - { label: "Scalar, RHF", value: "−2570.202590 Eh" }
+  - { label: "Spin-orbit, GHF", value: "−2570.172561 Eh" }
+nodes:
+  - id: system_sf
+    type: System
+    options:
+      xyz: |
+        H 0 0 0
+        Br 0 0 1.4
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-jkfit
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: sf, x2c_model: sap } }
+  - id: rhf
+    type: RHF
+    parent: system_sf
+    options: { charge: 0, e_tol: 1.0e-10, d_tol: 1.0e-8 }
+  - id: system_so
+    type: System
+    options:
+      xyz: |
+        H 0 0 0
+        Br 0 0 1.4
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-jkfit
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: so, x2c_model: sap } }
+  - id: ghf
+    type: GHF
+    parent: system_so
+    options: { charge: 0, e_tol: 1.0e-10, d_tol: 1.0e-8 }

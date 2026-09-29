@@ -1,6 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
-order: 7
+section: Dynamic correlation and embedding
+order: 11
 title: ASET(0) embedding → DSRG-MRPT2
 summary: Treat propene's vinyl group as the fragment and the methyl group as the environment, then correlate the fragment with DSRG-MRPT2.
 tags: [embedding, ASET, CASSCF, DSRG-MRPT2, Cholesky]

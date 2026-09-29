@@ -1,0 +1,55 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Relativistic
+order: 21
+title: Two-component ASET(0) embedding
+summary: Embedding in a two-component chain. A one-component CASSCF on HNNF becomes spinors through SpinorUpcaster, a two-component CASSCF follows, and ASET(0) then embeds the NNH fragment.
+tags: [relativistic, embedding, ASET, SpinorUpcaster]
+source: tests/orbitals/test_aset.py
+results:
+  - { label: "Embedded two-component CASCI", value: "−206.084139 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        N       -1.1226987119      2.0137160725     -0.0992218410
+        N       -0.1519067161      1.2402226172     -0.0345618482
+        H        0.7253474870      1.7181546089     -0.2678695726
+        F       -2.2714806355      1.3880717623      0.2062454513
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "10", active_orbitals: "4" }
+        slots:
+          states: { type: State, options: { nel: 24, multiplicity: 1, ms: 0.0 } }
+  - id: upcaster
+    type: SpinorUpcaster
+    parent: mc
+  - id: relmc
+    type: MCOptimizer
+    parent: upcaster
+    slots:
+      ci_solver: { type: RelCISolver, options: { nel: 24 } }
+  - id: aset
+    type: ASET
+    parent: relmc
+    options:
+      fragment: ["N", "H"]
+      frozen_core_orbitals: "6"
+      cutoff_method: threshold
+      cutoff: 0.99
+  - id: ci
+    type: CI
+    parent: aset
+    slots:
+      ci_solver: { type: RelCISolver, options: { nel: 24 } }

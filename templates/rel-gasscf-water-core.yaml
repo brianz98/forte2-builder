@@ -1,0 +1,40 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Relativistic
+order: 20
+title: Spin-orbit core excitation with frozen 1s spinors
+summary: Two-component GASSCF on water. The O 1s spinors hold at most one electron and stay frozen, and spin-orbit coupling mixes the singlet and triplet core-excited states.
+tags: [relativistic, GASSCF, core excitation, RelState]
+source: tests/mcopt/test_rel_gasscf.py
+results:
+  - { label: "GHF energy", value: "−76.105948 Eh" }
+  - { label: "State-averaged GASSCF energy", value: "−56.418813 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        O   0.0000000000  -0.0000000000  -0.0662628033
+        H   0.0000000000  -0.7540256101   0.5259060578
+        H  -0.0000000000   0.7530256101   0.5260060578
+      basis_set: cc-pVTZ
+      auxiliary_basis_set: def2-universal-jkfit
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: so, x2c_model: "1e" } }
+  - id: ghf
+    type: GHF
+    parent: system
+    options: { charge: 0 }
+  - id: mc
+    type: MCOptimizer
+    parent: ghf
+    options: { active_frozen_orbitals: [0, 1] }
+    slots:
+      ci_solver:
+        type: RelCISolver
+        options:
+          core_orbitals: "[2, 3]"
+          nroots: "4"
+          active_orbitals: "[[0, 1], [4, 5, 6, 7, 8, 9, 10, 11]]"
+        slots:
+          states: { type: RelState, options: { nel: 10, gas_min: [0], gas_max: [1] } }

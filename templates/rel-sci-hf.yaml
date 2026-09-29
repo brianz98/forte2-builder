@@ -1,0 +1,37 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Relativistic
+order: 19
+title: Two-component selected CI
+summary: Spin-orbit X2C selected CI on HF. With a tight selection threshold, it reproduces the two-component CASCI energy.
+tags: [relativistic, selected CI, X2C]
+source: tests/sci/test_rel_sci.py
+results:
+  - { label: "Two-component selected CI", value: "−100.100650 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0.0 0.0 0.0
+        F 0.0 0.0 2.0
+      basis_set: cc-pvdz
+      auxiliary_basis_set: cc-pVTZ-JKFIT
+      unit: bohr
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: so } }
+  - id: ghf
+    type: GHF
+    parent: system
+    options: { charge: 0 }
+  - id: ci
+    type: CI
+    parent: ghf
+    slots:
+      ci_solver:
+        type: RelSelectedCISolver
+        options: { nel: 10, core_orbitals: "2", active_orbitals: "12" }
+        slots:
+          sci_params:
+            type: SelectedCIParams
+            options: { var_threshold: 1.0e-12, pt2_threshold: 0.0 }

@@ -31,6 +31,8 @@ export interface TemplateResult {
 }
 
 export interface GraphMeta {
+  // Gallery heading the template is listed under.
+  section?: string;
   title?: string;
   summary?: string;
   description?: string;

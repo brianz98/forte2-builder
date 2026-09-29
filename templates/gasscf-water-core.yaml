@@ -1,6 +1,7 @@
 format: forte2-graph/1
 forte2_version: "2026.9.1"
-order: 3
+section: Active-space methods
+order: 5
 title: Core-excited states with GASSCF
 summary: Restrict the O 1s orbital to at most one electron and state-average a singlet and a triplet core-excited state.
 tags: [GASSCF, core excitation, state averaging]

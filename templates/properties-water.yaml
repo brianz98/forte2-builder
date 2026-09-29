@@ -1,0 +1,41 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Mean field and properties
+order: 13
+title: Dipole, quadrupole and Mulliken charges
+summary: Analysis nodes on an RHF density. The script prints the dipole and traceless quadrupole moments and the Mulliken charges, and writes cube files for the HOMO and LUMO.
+tags: [properties, dipole, Mulliken, cube files]
+source: tests/props/test_props.py
+results:
+  - { label: "Dipole moment (z)", value: "1.958680 D" }
+  - { label: "Quadrupole diagonal", value: "−2.1650, 2.2829, −0.1178 D·Å" }
+  - { label: "O Mulliken charge", value: "−0.462004" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        O            0.000000000000     0.000000000000    -0.061664597388
+        H            0.000000000000    -0.711620616369     0.489330954643
+        H            0.000000000000     0.711620616369     0.489330954643
+      basis_set: cc-pVQZ
+      auxiliary_basis_set: cc-pVQZ-JKFIT
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0 }
+  - id: dipole
+    type: get_1e_property
+    parent: rhf
+    options: { property_name: dipole }
+  - id: quadrupole
+    type: get_1e_property
+    parent: rhf
+    options: { property_name: quadrupole }
+  - id: charges
+    type: mulliken_population
+    parent: rhf
+  - id: cubes
+    type: write_orbital_cubes
+    parent: rhf
+    options: { indices: [4, 5], prefix: water }

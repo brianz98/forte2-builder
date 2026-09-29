@@ -6,7 +6,7 @@ import { catalog, graph, n2 } from "./helpers";
 
 describe("python codegen", () => {
   it("writes the spin-orbit template the way the forte2 test does", () => {
-    const t = templates.find((x) => x.id === "05-spin-orbit-fluorine")!;
+    const t = templates.find((x) => x.id === "spin-orbit-fluorine")!;
     expect(generatePython(parseGraphFile(t.file), catalog)).toBe(
       `from forte2 import (
     AVAS,

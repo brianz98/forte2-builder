@@ -1,0 +1,30 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Relativistic
+order: 17
+title: Two-component CASSCF on bromine
+summary: A spin-orbit CASSCF averaged over the six states of the Br ²P term, starting from GHF orbitals of the closed-shell bromide anion.
+tags: [relativistic, heavy element, two-component CASSCF]
+source: tests/mcopt/test_rel_casscf.py
+results:
+  - { label: "State-averaged CASSCF energy", value: "−2597.067904 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: Br 0 0 0
+      basis_set: cc-pvtz
+      auxiliary_basis_set: cc-pvtz-jkfit
+    slots:
+      x2c: { type: X2CParams, options: { x2c_type: so, x2c_model: "1e", snso_type: row-dependent } }
+  - id: ghf
+    type: GHF
+    parent: system
+    options: { charge: -1 }
+  - id: mc
+    type: MCOptimizer
+    parent: ghf
+    slots:
+      ci_solver:
+        type: RelCISolver
+        options: { nel: 35, nroots: "6", active_orbitals: "8", core_orbitals: "28" }

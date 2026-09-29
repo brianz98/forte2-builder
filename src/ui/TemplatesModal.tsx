@@ -18,6 +18,14 @@ export function TemplatesModal() {
   }, [open, setOpen]);
 
   if (!open) return null;
+  // Sections appear in the order of their first template.
+  const sections: { name: string; items: typeof templates }[] = [];
+  for (const t of templates) {
+    const name = t.file.section ?? "Other";
+    const section = sections.find((s) => s.name === name);
+    if (section) section.items.push(t);
+    else sections.push({ name, items: [t] });
+  }
   return (
     <div className="modal-backdrop" onClick={() => setOpen(false)}>
       <div className="modal" role="dialog" aria-label="Templates" onClick={(e) => e.stopPropagation()}>
@@ -32,8 +40,11 @@ export function TemplatesModal() {
             <Icon name="x" />
           </button>
         </div>
-        <div className="template-grid">
-          {templates.map((t) => {
+        {sections.map((section) => (
+          <section key={section.name} className="template-section">
+            <h3 className="section-label">{section.name}</h3>
+            <div className="template-grid">
+          {section.items.map((t) => {
             const types = [...new Set(t.file.nodes.map((n) => n.type))];
             return (
               <button
@@ -71,7 +82,9 @@ export function TemplatesModal() {
               </button>
             );
           })}
-        </div>
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );

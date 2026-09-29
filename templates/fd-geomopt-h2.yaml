@@ -1,0 +1,32 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Gradients and geometry
+order: 23
+title: Geometry optimization with finite-difference gradients
+summary: FDGradient differentiates the energy of the method before it, here RHF, so GeometryOptimizer can drive methods that have no analytic gradient.
+tags: [geometry optimization, finite differences]
+source: tests/optimize/test_geometry_optimizer.py
+results:
+  - { label: "Optimized bond length", value: "1.345908 bohr" }
+  - { label: "Energy at minimum", value: "−1.117530 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        H 0 0 0
+        H 0 0 2.4
+      basis_set: sto-3g
+      auxiliary_basis_set: def2-universal-JKFIT
+      unit: bohr
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12, d_tol: 1.0e-10 }
+  - id: fd
+    type: FDGradient
+    parent: rhf
+  - id: opt
+    type: GeometryOptimizer
+    parent: fd
+    options: { maxiter: 25, g_tol: 1.0e-7, max_step: 0.5 }

@@ -1,0 +1,36 @@
+format: forte2-graph/1
+forte2_version: "2026.9.1"
+section: Active-space methods
+order: 9
+title: Point-group symmetry and Cholesky integrals
+summary: CASSCF on N₂ with its point group detected automatically and the two-electron integrals Cholesky-decomposed instead of density-fitted, so no auxiliary basis is needed.
+tags: [symmetry, Cholesky, CASSCF]
+source: tests/mcopt/test_casscf_cholesky_n2.py
+results:
+  - { label: "RHF energy", value: "−108.949592 Eh" }
+  - { label: "CASSCF(6,6) energy", value: "−109.090720 Eh" }
+nodes:
+  - id: system
+    type: System
+    options:
+      xyz: |
+        N 0.0 0.0 0.0
+        N 0.0 0.0 1.120
+      basis_set: cc-pVDZ
+      cholesky_tei: true
+      cholesky_tol: 1.0e-10
+      symmetry: true
+  - id: rhf
+    type: RHF
+    parent: system
+    options: { charge: 0, e_tol: 1.0e-12 }
+  - id: mc
+    type: MCOptimizer
+    parent: rhf
+    options: { e_tol: 1.0e-9 }
+    slots:
+      ci_solver:
+        type: CISolver
+        options: { core_orbitals: "[0, 1, 2, 3]", active_orbitals: "[4, 5, 6, 7, 8, 9]" }
+        slots:
+          states: { type: State, options: { nel: 14, multiplicity: 1, ms: 0.0 } }
