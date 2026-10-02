@@ -1,15 +1,14 @@
 # Catalog coverage of forte2
 
-This page records what `forte2-2026.9.1.yaml` covers of forte2's public API, what it leaves out and
+This page records what `forte2-2026.10.1.yaml` covers of forte2's public API, what it leaves out and
 why, and where in forte2 each compatibility check comes from. A forte2 graph exporter
 ([#11](https://github.com/brianz98/forte2-builder/issues/11)) and declarative rules
 ([#13](https://github.com/brianz98/forte2-builder/issues/13)) should reproduce the catalog's nodes,
 connections, and rules from forte2 itself.
 
-The catalog was audited against forte2 `main` at `e83f76dd` (September 28, 2026). This version
-includes the solver and driver split from forte2 #244, so it describes `main`, not the
-`v2026.9.1-alpha` tag. At the tag, `CI` takes its states directly, and `RelCI`, `SelectedCI`, and
-`RelSelectedCI` exist.
+The catalog describes forte2
+[`v2026.10.1-alpha`](https://github.com/evangelistalab/forte2/releases/tag/v2026.10.1-alpha), and
+its dump was generated from that tag's sources.
 
 ## Public API
 
@@ -39,7 +38,19 @@ includes the solver and driver split from forte2 #244, so it describes `main`, n
 | `CubeGenerator` (and its alias `Cube`) | `write_orbital_cubes`. |
 | `PGSymmetryDetector`, `MOSymmetryDetector` | `System.symmetry`. |
 | `build_basis`, `decontract_basis` | The System's basis options, including the `decon-` prefix. |
-| `transfer_orbitals`, `snapshot_orbitals`, `seed_scf_guess`, and the other `forte2.base_classes.rebuild` functions | `project_orbitals` on `FDGradient` and `GeometryOptimizer`. forte2 has no public way to seed one chain's SCF from another. |
+| `mo_overlap`, `project_orbitals`, `project_occupied_orbitals`, and the `forte2.base_classes.rebuild` functions, such as `project_scf_guess` | `project_orbitals` on `FDGradient` and `GeometryOptimizer`. forte2 exports no function that seeds one chain's SCF from another. |
+
+### Not in the builder yet
+
+`forte2.orbitals.ci_overlap(ci_1, ci_2, root_1=0, root_2=0, algorithm="biorthogonal")` computes the
+overlap of two CI wavefunctions, which can differ in geometry, basis set, orbitals, and active
+space. It takes two drivers, a bra and a ket, but an analysis node has only one upstream node. Its
+requirements, from `orbitals/wavefunction_overlap.py`:
+- Both drivers own a `CISolver` or a `RelCISolver`.
+- Both wavefunctions are one-component or both are two-component, with the same numbers of alpha
+  and beta electrons, or the same number of electrons if two-component.
+- `algorithm="biorthogonal"` needs the same core and active spaces in both, and the complete CAS
+  determinant space. `algorithm="naive"` handles any pair.
 
 ### Left out
 

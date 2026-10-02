@@ -1,8 +1,8 @@
-# Curated catalog for forte2 2026.9.1.
+# Curated catalog for forte2 2026.10.1.
 #
 # This file holds what can't be read from the code: how classes compose, which
 # options matter, and the compatibility rules. Option types, defaults and
-# descriptions come from forte2-2026.9.1.dump.json (tools/dump_forte2.py); any
+# descriptions come from forte2-2026.10.1.dump.json (tools/dump_forte2.py); any
 # option listed here overrides the dump field by field. Constructor arguments
 # not listed here still appear in the builder, under "Advanced", unless hidden.
 #
@@ -34,10 +34,10 @@
 #              attribute (parent only), provides (parent only), or
 #              <slot>.<type|option> for the object in a slot
 
-forte2_version: "2026.9.1"
+forte2_version: "2026.10.1"
 release:
-  tag: v2026.9.1-alpha
-  url: https://github.com/evangelistalab/forte2/releases/tag/v2026.9.1-alpha
+  tag: v2026.10.1-alpha
+  url: https://github.com/evangelistalab/forte2/releases/tag/v2026.10.1-alpha
 docs_base: "https://forte2.readthedocs.io/en/latest/autoapi/"
 
 groups:

@@ -1,5 +1,5 @@
 format: forte2-graph/1
-forte2_version: "2026.9.1"
+forte2_version: "2026.10.1"
 section: Active-space methods
 order: 6
 title: Core-excited states with GASSCF

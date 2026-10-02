@@ -1,5 +1,5 @@
 {
-  "forte2_version": "2026.9.1",
+  "forte2_version": "2026.10.1",
   "classes": {
     "ASET": {
       "module": "forte2.orbitals.aset",
@@ -713,7 +713,7 @@
           "name": "project_orbitals",
           "type": "bool",
           "required": false,
-          "doc": "Whether to seed the SCF at each displacement with the reference-geometry\nSCF orbitals, transferred to the displaced geometry.",
+          "doc": "Whether to seed each displaced calculation with orbitals projected from\nthe reference geometry.",
           "default": {
             "value": true
           }
@@ -962,7 +962,7 @@
           "name": "project_orbitals",
           "type": "bool",
           "required": false,
-          "doc": "If True, seed the SCF at each new geometry with the SCF orbitals of the\nprevious one, which keeps the optimization on the same SCF solution.",
+          "doc": "If True, project the occupied orbitals from the previous evaluated\ngeometry into the AO basis of the next geometry and use them as the SCF\ninitial guess.",
           "default": {
             "value": true
           }
